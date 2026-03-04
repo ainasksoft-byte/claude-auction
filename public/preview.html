@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#000000">
+<title>TikTok Auctions - Preview</title>
+<link href="https://fonts.bunny.net/css?family=inter:400,500,600,700,800" rel="stylesheet" />
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body { background: #000; color: #fff; font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+
+/* Nav */
+.preview-nav { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; background: #0a0a0a; border-bottom: 1px solid #1F1F1F; display: flex; overflow-x: auto; gap: 0; }
+.preview-nav button { padding: 12px 16px; color: #AAA; font-size: 12px; font-weight: 600; white-space: nowrap; background: none; border: none; cursor: pointer; border-bottom: 2px solid transparent; }
+.preview-nav button.active { color: #fff; border-bottom-color: #FE2C55; }
+.preview-nav::-webkit-scrollbar { display: none; }
+
+/* Screen container */
+.screen { display: none; padding-top: 44px; min-height: 100vh; }
+.screen.active { display: block; }
+
+/* TikTok container */
+.tiktok-container { max-width: 430px; margin: 0 auto; position: relative; }
+
+/* Animations */
+@keyframes pulse-urgent { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+@keyframes glow-pink { 0%, 100% { box-shadow: 0 0 5px #FE2C55, 0 0 10px #FE2C5555; } 50% { box-shadow: 0 0 15px #FE2C55, 0 0 30px #FE2C5555; } }
+@keyframes glow-cyan { 0%, 100% { box-shadow: 0 0 5px #25F4EE, 0 0 10px #25F4EE55; } 50% { box-shadow: 0 0 15px #25F4EE, 0 0 30px #25F4EE55; } }
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@keyframes slide-up { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+.glow-pink { animation: glow-pink 2s ease-in-out infinite; }
+.glow-cyan { animation: glow-cyan 2s ease-in-out infinite; }
+.float-action { animation: float 3s ease-in-out infinite; }
+.slide-up { animation: slide-up 0.3s ease-out; }
+.fade-in { animation: fade-in 0.3s ease-out; }
+.countdown-urgent { animation: pulse-urgent 1s ease-in-out infinite; }
+.tiktok-gradient { background: linear-gradient(90deg, #25F4EE, #FE2C55); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.neon-pink { text-shadow: 0 0 7px #FE2C55, 0 0 10px #FE2C55, 0 0 21px #FE2C55; }
+.neon-cyan { text-shadow: 0 0 7px #25F4EE, 0 0 10px #25F4EE, 0 0 21px #25F4EE; }
+.hud-border { border: 1px solid #1F1F1F; background: linear-gradient(135deg, #111111 0%, #0a0a0a 100%); position: relative; }
+.hud-border::before { content: ''; position: absolute; top: -1px; left: -1px; right: -1px; bottom: -1px; border-radius: inherit; background: linear-gradient(135deg, #25F4EE22, transparent 50%, #FE2C5522); z-index: -1; pointer-events: none; }
+
+/* Bottom Nav */
+.bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); max-width: 430px; width: 100%; background: #0a0a0a; border-top: 1px solid #1F1F1F; display: flex; align-items: center; justify-content: space-around; padding: 8px 0 20px; z-index: 100; }
+.bottom-nav-item { display: flex; flex-direction: column; align-items: center; gap: 2px; color: #AAA; font-size: 10px; }
+.bottom-nav-item.active { color: #fff; }
+.bottom-nav-create { width: 44px; height: 28px; background: linear-gradient(90deg, #25F4EE, #FE2C55); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 20px; font-weight: 300; }
+</style>
+</head>
+<body>
+
+<!-- Preview Navigation -->
+<nav class="preview-nav" id="previewNav">
+    <button class="active" data-screen="feed">Feed</button>
+    <button data-screen="explore">Explore</button>
+    <button data-screen="detail">Auction Detail</button>
+    <button data-screen="create">Create Auction</button>
+    <button data-screen="profile">Dashboard</button>
+    <button data-screen="wallet">Wallet</button>
+    <button data-screen="admin">Admin HUD</button>
+    <button data-screen="notifications">Notifications</button>
+</nav>
+
+<!-- ==================== FEED SCREEN ==================== -->
+<div class="screen active" id="screen-feed">
+<div class="tiktok-container" style="padding-bottom: 80px;">
+    <!-- Feed Header -->
+    <div style="display:flex;align-items:center;justify-content:center;gap:24px;padding:12px 16px;border-bottom:1px solid #1F1F1F;">
+        <span style="color:#AAA;font-size:15px;">Following</span>
+        <span style="font-size:15px;font-weight:700;border-bottom:2px solid #fff;padding-bottom:4px;">For You</span>
+        <span style="color:#25F4EE;font-size:15px;font-weight:600;">🔴 Live</span>
+        <span style="color:#AAA;font-size:15px;">Ending Soon</span>
+    </div>
+
+    <!-- Feed Item 1 -->
+    <div style="position:relative;background:#111;margin:8px 16px;border-radius:16px;overflow:hidden;border:1px solid #1F1F1F;">
+        <div style="aspect-ratio:9/16;max-height:500px;background:linear-gradient(135deg,#FE2C55/15,#25F4EE/15,#111);display:flex;align-items:center;justify-content:center;position:relative;">
+            <div style="width:60px;height:60px;border-radius:50%;border:3px solid #FE2C55;display:flex;align-items:center;justify-content:center;font-size:24px;">▶</div>
+            <!-- Status Badge -->
+            <div style="position:absolute;top:12px;left:12px;background:#22c55e;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;display:flex;align-items:center;gap:4px;">
+                <span style="width:6px;height:6px;background:#fff;border-radius:50%;"></span> LIVE
+            </div>
+            <!-- Timer -->
+            <div style="position:absolute;top:12px;right:12px;background:rgba(0,0,0,0.7);padding:4px 10px;border-radius:20px;font-size:11px;font-family:monospace;color:#25F4EE;">02:34:15</div>
+            <!-- Right Side Actions -->
+            <div style="position:absolute;right:12px;bottom:120px;display:flex;flex-direction:column;align-items:center;gap:20px;">
+                <div style="text-align:center;"><div style="width:40px;height:40px;border-radius:50%;background:#222;display:flex;align-items:center;justify-content:center;border:2px solid #FE2C55;">JD</div><span style="font-size:9px;color:#FE2C55;margin-top:2px;display:block;">+</span></div>
+                <div style="text-align:center;"><div style="font-size:20px;">❤️</div><span style="font-size:11px;color:#AAA;">2.4K</span></div>
+                <div style="text-align:center;"><div style="font-size:20px;">💬</div><span style="font-size:11px;color:#AAA;">89</span></div>
+                <div style="text-align:center;"><div style="font-size:20px;">🔖</div><span style="font-size:11px;color:#AAA;">Save</span></div>
+                <div style="text-align:center;"><div style="font-size:20px;">↗️</div><span style="font-size:11px;color:#AAA;">Share</span></div>
+            </div>
+            <!-- Bottom Info -->
+            <div style="position:absolute;bottom:0;left:0;right:60px;padding:16px;background:linear-gradient(transparent,rgba(0,0,0,0.8));">
+                <p style="font-size:11px;color:#AAA;">@sneaker_vault · 📍 Los Angeles</p>
+                <h3 style="font-size:16px;font-weight:700;margin:4px 0;">Jordan 4 Retro "Military Black" DS</h3>
+                <div style="display:flex;align-items:center;gap:12px;margin-top:8px;">
+                    <span style="font-size:20px;font-weight:800;color:#25F4EE;">$185.00</span>
+                    <span style="font-size:12px;color:#AAA;">23 bids</span>
+                </div>
+            </div>
+        </div>
+        <!-- Quick Bid Bar -->
+        <div style="padding:12px 16px;display:flex;gap:8px;background:#0a0a0a;">
+            <input type="text" value="$190.00" readonly style="flex:1;background:#111;border:1px solid #1F1F1F;border-radius:24px;padding:10px 16px;color:#fff;font-size:14px;outline:none;">
+            <button style="background:#FE2C55;color:#fff;font-weight:700;padding:10px 24px;border-radius:24px;border:none;font-size:14px;display:flex;align-items:center;gap:6px;cursor:pointer;">⚡ Bid</button>
+        </div>
+    </div>
+
+    <!-- Feed Item 2 -->
+    <div style="position:relative;background:#111;margin:8px 16px;border-radius:16px;overflow:hidden;border:1px solid #1F1F1F;">
+        <div style="aspect-ratio:9/12;max-height:400px;background:linear-gradient(135deg,#25F4EE/10,#FE2C55/10);display:flex;align-items:center;justify-content:center;position:relative;">
+            <div style="width:60px;height:60px;border-radius:50%;border:3px solid #25F4EE;display:flex;align-items:center;justify-content:center;font-size:24px;">▶</div>
+            <div style="position:absolute;top:12px;left:12px;background:#FE2C55;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;">ENDING SOON</div>
+            <div style="position:absolute;top:12px;right:12px;background:rgba(0,0,0,0.7);padding:4px 10px;border-radius:20px;font-size:11px;font-family:monospace;color:#FE2C55;" class="countdown-urgent">00:04:32</div>
+            <div style="position:absolute;right:12px;bottom:120px;display:flex;flex-direction:column;align-items:center;gap:20px;">
+                <div style="text-align:center;"><div style="width:40px;height:40px;border-radius:50%;background:#222;display:flex;align-items:center;justify-content:center;">TC</div></div>
+                <div style="text-align:center;"><div style="font-size:20px;">❤️</div><span style="font-size:11px;color:#AAA;">891</span></div>
+                <div style="text-align:center;"><div style="font-size:20px;">💬</div><span style="font-size:11px;color:#AAA;">34</span></div>
+            </div>
+            <div style="position:absolute;bottom:0;left:0;right:60px;padding:16px;background:linear-gradient(transparent,rgba(0,0,0,0.8));">
+                <p style="font-size:11px;color:#AAA;">@tech_collector · 📍 NYC</p>
+                <h3 style="font-size:16px;font-weight:700;margin:4px 0;">PS5 Slim Bundle + 3 Games</h3>
+                <div style="display:flex;align-items:center;gap:12px;margin-top:8px;">
+                    <span style="font-size:20px;font-weight:800;color:#FE2C55;">$320.00</span>
+                    <span style="font-size:12px;color:#AAA;">47 bids</span>
+                </div>
+            </div>
+        </div>
+        <div style="padding:12px 16px;display:flex;gap:8px;background:#0a0a0a;">
+            <input type="text" value="$325.00" readonly style="flex:1;background:#111;border:1px solid #1F1F1F;border-radius:24px;padding:10px 16px;color:#fff;font-size:14px;outline:none;">
+            <button style="background:#FE2C55;color:#fff;font-weight:700;padding:10px 24px;border-radius:24px;border:none;font-size:14px;cursor:pointer;">⚡ Bid</button>
+        </div>
+    </div>
+
+    <!-- Bottom Nav -->
+    <div class="bottom-nav">
+        <div class="bottom-nav-item active"><span style="font-size:20px;">🏠</span><span>Home</span></div>
+        <div class="bottom-nav-item"><span style="font-size:20px;">🔍</span><span>Explore</span></div>
+        <div><div class="bottom-nav-create">+</div></div>
+        <div class="bottom-nav-item"><span style="font-size:20px;">🔔</span><span>Inbox</span></div>
+        <div class="bottom-nav-item"><span style="font-size:20px;">👤</span><span>Me</span></div>
+    </div>
+</div>
+</div>
+
+<!-- ==================== EXPLORE SCREEN ==================== -->
+<div class="screen" id="screen-explore">
+<div class="tiktok-container" style="padding-bottom:80px;">
+    <!-- Search -->
+    <div style="padding:12px 16px;border-bottom:1px solid #1F1F1F;">
+        <div style="display:flex;gap:8px;">
+            <div style="flex:1;position:relative;">
+                <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);">🔍</span>
+                <input placeholder="Search auctions..." style="width:100%;background:#111;border:1px solid #1F1F1F;border-radius:24px;padding:10px 16px 10px 36px;color:#fff;font-size:14px;outline:none;">
+            </div>
+            <button style="width:40px;height:40px;border-radius:50%;background:#111;border:1px solid #1F1F1F;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#AAA;">⚙️</button>
+        </div>
+        <!-- Categories -->
+        <div style="display:flex;gap:8px;margin-top:12px;overflow-x:auto;">
+            <span style="background:#FE2C55;color:#fff;padding:6px 16px;border-radius:20px;font-size:12px;font-weight:600;white-space:nowrap;">All</span>
+            <span style="background:#111;border:1px solid #1F1F1F;color:#AAA;padding:6px 16px;border-radius:20px;font-size:12px;white-space:nowrap;">Electronics</span>
+            <span style="background:#111;border:1px solid #1F1F1F;color:#AAA;padding:6px 16px;border-radius:20px;font-size:12px;white-space:nowrap;">Fashion</span>
+            <span style="background:#111;border:1px solid #1F1F1F;color:#AAA;padding:6px 16px;border-radius:20px;font-size:12px;white-space:nowrap;">Sneakers</span>
+            <span style="background:#111;border:1px solid #1F1F1F;color:#AAA;padding:6px 16px;border-radius:20px;font-size:12px;white-space:nowrap;">Luxury</span>
+            <span style="background:#111;border:1px solid #1F1F1F;color:#AAA;padding:6px 16px;border-radius:20px;font-size:12px;white-space:nowrap;">Gaming</span>
+            <span style="background:#111;border:1px solid #1F1F1F;color:#AAA;padding:6px 16px;border-radius:20px;font-size:12px;white-space:nowrap;">Collectibles</span>
+            <span style="background:#111;border:1px solid #1F1F1F;color:#AAA;padding:6px 16px;border-radius:20px;font-size:12px;white-space:nowrap;">Mystery Boxes</span>
+        </div>
+    </div>
+    <!-- Grid -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:16px;">
+        <!-- Card 1 -->
+        <div style="background:#111;border-radius:16px;border:1px solid #1F1F1F;overflow:hidden;">
+            <div style="aspect-ratio:1;background:linear-gradient(135deg,#FE2C55/15,#25F4EE/15);display:flex;align-items:center;justify-content:center;position:relative;">
+                <span style="font-size:30px;">👟</span>
+                <span style="position:absolute;top:8px;left:8px;background:#22c55e;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;">LIVE</span>
+                <span style="position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,0.7);padding:2px 8px;border-radius:10px;font-size:10px;font-family:monospace;">02:34:15</span>
+            </div>
+            <div style="padding:12px;">
+                <p style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Jordan 4 Military Black</p>
+                <div style="display:flex;justify-content:space-between;margin-top:6px;"><span style="font-size:16px;font-weight:800;color:#25F4EE;">$185</span><span style="font-size:11px;color:#AAA;">23 bids</span></div>
+                <div style="display:flex;align-items:center;gap:4px;margin-top:6px;"><div style="width:16px;height:16px;border-radius:50%;background:#222;font-size:8px;display:flex;align-items:center;justify-content:center;">S</div><span style="font-size:11px;color:#AAA;">@sneaker_vault</span></div>
+            </div>
+        </div>
+        <!-- Card 2 -->
+        <div style="background:#111;border-radius:16px;border:1px solid #1F1F1F;overflow:hidden;">
+            <div style="aspect-ratio:1;background:linear-gradient(135deg,#25F4EE/10,#111);display:flex;align-items:center;justify-content:center;position:relative;">
+                <span style="font-size:30px;">🎮</span>
+                <span style="position:absolute;top:8px;left:8px;background:#FE2C55;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;">ENDING</span>
+                <span style="position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,0.7);padding:2px 8px;border-radius:10px;font-size:10px;font-family:monospace;color:#FE2C55;">00:04:32</span>
+            </div>
+            <div style="padding:12px;">
+                <p style="font-size:13px;font-weight:600;">PS5 Slim Bundle</p>
+                <div style="display:flex;justify-content:space-between;margin-top:6px;"><span style="font-size:16px;font-weight:800;color:#25F4EE;">$320</span><span style="font-size:11px;color:#AAA;">47 bids</span></div>
+                <div style="display:flex;align-items:center;gap:4px;margin-top:6px;"><div style="width:16px;height:16px;border-radius:50%;background:#222;font-size:8px;display:flex;align-items:center;justify-content:center;">T</div><span style="font-size:11px;color:#AAA;">@tech_collector</span></div>
+            </div>
+        </div>
+        <!-- Card 3 -->
+        <div style="background:#111;border-radius:16px;border:1px solid #1F1F1F;overflow:hidden;">
+            <div style="aspect-ratio:1;background:linear-gradient(135deg,#FE2C55/10,#111);display:flex;align-items:center;justify-content:center;position:relative;">
+                <span style="font-size:30px;">⌚</span>
+                <span style="position:absolute;top:8px;left:8px;background:#25F4EE;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;color:#000;">UPCOMING</span>
+            </div>
+            <div style="padding:12px;">
+                <p style="font-size:13px;font-weight:600;">Rolex Submariner 2024</p>
+                <div style="display:flex;justify-content:space-between;margin-top:6px;"><span style="font-size:16px;font-weight:800;color:#25F4EE;">$5,200</span><span style="font-size:11px;color:#AAA;">0 bids</span></div>
+                <div style="display:flex;align-items:center;gap:4px;margin-top:6px;"><div style="width:16px;height:16px;border-radius:50%;background:#222;font-size:8px;display:flex;align-items:center;justify-content:center;">L</div><span style="font-size:11px;color:#AAA;">@luxury_finds</span></div>
+            </div>
+        </div>
+        <!-- Card 4 -->
+        <div style="background:#111;border-radius:16px;border:1px solid #1F1F1F;overflow:hidden;">
+            <div style="aspect-ratio:1;background:linear-gradient(135deg,#25F4EE/15,#FE2C55/10);display:flex;align-items:center;justify-content:center;position:relative;">
+                <span style="font-size:30px;">📦</span>
+                <span style="position:absolute;top:8px;left:8px;background:#22c55e;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;">LIVE</span>
+            </div>
+            <div style="padding:12px;">
+                <p style="font-size:13px;font-weight:600;">Mystery Electronics Box</p>
+                <div style="display:flex;justify-content:space-between;margin-top:6px;"><span style="font-size:16px;font-weight:800;color:#25F4EE;">$45</span><span style="font-size:11px;color:#AAA;">12 bids</span></div>
+                <div style="display:flex;align-items:center;gap:4px;margin-top:6px;"><div style="width:16px;height:16px;border-radius:50%;background:#222;font-size:8px;display:flex;align-items:center;justify-content:center;">M</div><span style="font-size:11px;color:#AAA;">@mystery_deals</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- ==================== DETAIL SCREEN ==================== -->
+<div class="screen" id="screen-detail">
+<div class="tiktok-container" style="padding-bottom:120px;">
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #1F1F1F;">
+        <span style="font-size:20px;cursor:pointer;">←</span>
+        <div style="display:flex;gap:12px;">
+            <span style="font-size:20px;color:#FE2C55;">❤️</span>
+            <span style="font-size:20px;color:#25F4EE;">🔖</span>
+            <span style="font-size:20px;">↗️</span>
+        </div>
+    </div>
+    <!-- Video -->
+    <div style="aspect-ratio:9/14;max-height:400px;background:linear-gradient(135deg,#FE2C55/15,#25F4EE/10);display:flex;align-items:center;justify-content:center;position:relative;">
+        <div style="width:80px;height:80px;border-radius:50%;border:3px solid #FE2C55;display:flex;align-items:center;justify-content:center;font-size:32px;">▶</div>
+        <div style="position:absolute;top:12px;left:12px;background:#22c55e;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;display:flex;align-items:center;gap:4px;"><span style="width:6px;height:6px;background:#fff;border-radius:50%;"></span> LIVE</div>
+    </div>
+    <!-- Timer -->
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;background:#111;">
+        <span style="color:#25F4EE;">⏱️</span>
+        <span style="font-size:18px;font-family:monospace;font-weight:700;color:#25F4EE;">02:34:15</span>
+    </div>
+    <!-- Current Bid -->
+    <div style="background:#111;border-top:1px solid #1F1F1F;border-bottom:1px solid #1F1F1F;padding:16px;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+            <p style="font-size:11px;color:#AAA;text-transform:uppercase;">Current Bid</p>
+            <p style="font-size:28px;font-weight:800;color:#25F4EE;">$185.00</p>
+        </div>
+        <div style="text-align:right;">
+            <p style="font-size:12px;color:#AAA;">23 bids</p>
+            <p style="font-size:12px;color:#AAA;">1,247 views</p>
+        </div>
+    </div>
+    <!-- Seller -->
+    <div style="padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #1F1F1F;">
+        <div style="width:40px;height:40px;border-radius:50%;background:#222;border:2px solid #FE2C55;display:flex;align-items:center;justify-content:center;font-weight:700;">SV</div>
+        <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:6px;"><span style="font-size:14px;font-weight:700;">@sneaker_vault</span><span style="width:16px;height:16px;background:#25F4EE;border-radius:50%;font-size:8px;display:flex;align-items:center;justify-content:center;">✓</span></div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:#AAA;"><span>⭐ 4.9</span><span>128 sales</span></div>
+        </div>
+        <button style="border:1px solid #FE2C55;color:#FE2C55;padding:6px 16px;border-radius:20px;font-size:12px;font-weight:700;background:none;cursor:pointer;">Follow</button>
+    </div>
+    <!-- Tabs -->
+    <div style="display:flex;border-bottom:1px solid #1F1F1F;">
+        <button style="flex:1;padding:12px;font-size:13px;font-weight:600;color:#fff;border:none;background:none;border-bottom:2px solid #FE2C55;cursor:pointer;">Details</button>
+        <button style="flex:1;padding:12px;font-size:13px;font-weight:600;color:#AAA;border:none;background:none;cursor:pointer;">Bids (23)</button>
+        <button style="flex:1;padding:12px;font-size:13px;font-weight:600;color:#AAA;border:none;background:none;cursor:pointer;">Comments (89)</button>
+    </div>
+    <!-- Details -->
+    <div style="padding:16px;space-y:16px;">
+        <h1 style="font-size:20px;font-weight:700;margin-bottom:12px;">Jordan 4 Retro "Military Black" DS</h1>
+        <div style="display:flex;gap:8px;margin-bottom:16px;">
+            <span style="background:#1F1F1F;padding:4px 12px;border-radius:20px;font-size:12px;">Sneakers</span>
+            <span style="background:#1F1F1F;padding:4px 12px;border-radius:20px;font-size:12px;">New</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+            <div style="background:#111;border-radius:12px;padding:12px;border:1px solid #1F1F1F;">
+                <p style="font-size:11px;color:#AAA;">Retail Price</p>
+                <p style="font-size:18px;font-weight:700;text-decoration:line-through;color:#AAA;">$210.00</p>
+            </div>
+            <div style="background:#111;border-radius:12px;padding:12px;border:1px solid #1F1F1F;">
+                <p style="font-size:11px;color:#AAA;">Starting Bid</p>
+                <p style="font-size:18px;font-weight:700;">$50.00</p>
+            </div>
+            <div style="background:#111;border-radius:12px;padding:12px;border:1px solid #1F1F1F;">
+                <p style="font-size:11px;color:#AAA;">Bid Increment</p>
+                <p style="font-size:18px;font-weight:700;">$5.00</p>
+            </div>
+            <div style="background:#111;border-radius:12px;padding:12px;border:1px solid #1F1F1F;">
+                <p style="font-size:11px;color:#AAA;">Ends</p>
+                <p style="font-size:13px;font-weight:700;">Mar 5, 2:30 PM</p>
+            </div>
+        </div>
+        <div style="background:#111;border-radius:12px;padding:12px;border:1px solid #1F1F1F;display:flex;align-items:center;gap:8px;">
+            <span style="color:#25F4EE;font-size:18px;">🛡️</span>
+            <div><p style="font-size:12px;font-weight:700;">Anti-Snipe Protection</p><p style="font-size:11px;color:#AAA;">Timer extends 10s on last-second bids</p></div>
+        </div>
+    </div>
+    <!-- Bid Bar -->
+    <div style="position:fixed;bottom:0;left:50%;transform:translateX(-50%);max-width:430px;width:100%;background:rgba(0,0,0,0.95);backdrop-filter:blur(8px);border-top:1px solid #1F1F1F;padding:12px 16px;z-index:100;" class="slide-up">
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+            <input type="text" value="$190.00" readonly style="flex:1;background:#111;border:1px solid #1F1F1F;border-radius:24px;padding:12px 16px;color:#fff;font-size:14px;outline:none;">
+            <button style="background:#FE2C55;color:#fff;font-weight:700;padding:12px 24px;border-radius:24px;border:none;font-size:14px;display:flex;align-items:center;gap:6px;cursor:pointer;">⚡ Bid</button>
+        </div>
+        <div style="display:flex;justify-content:space-between;"><span style="font-size:12px;color:#25F4EE;font-weight:600;cursor:pointer;">Auto-Bid ▼</span><span style="font-size:12px;color:#AAA;">Min: $190.00</span></div>
+    </div>
+</div>
+</div>
+
+<!-- ==================== CREATE SCREEN ==================== -->
+<div class="screen" id="screen-create">
+<div class="tiktok-container">
+    <div style="padding:12px 16px;border-bottom:1px solid #1F1F1F;display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:20px;">←</span>
+        <h2 style="font-size:16px;font-weight:700;">Create Auction</h2>
+        <span style="color:#AAA;font-size:13px;">Step 1/3</span>
+    </div>
+    <!-- Progress -->
+    <div style="display:flex;gap:4px;padding:0 16px;margin-top:12px;">
+        <div style="flex:1;height:3px;border-radius:2px;background:linear-gradient(90deg,#25F4EE,#FE2C55);"></div>
+        <div style="flex:1;height:3px;border-radius:2px;background:#1F1F1F;"></div>
+        <div style="flex:1;height:3px;border-radius:2px;background:#1F1F1F;"></div>
+    </div>
+    <!-- Form -->
+    <div style="padding:16px;">
+        <h3 style="font-size:18px;font-weight:700;margin-bottom:4px;">Product Details</h3>
+        <p style="font-size:13px;color:#AAA;margin-bottom:20px;">Add your product info and TikTok video</p>
+        <!-- Video Upload -->
+        <div style="border:2px dashed #1F1F1F;border-radius:16px;padding:32px;text-align:center;margin-bottom:20px;background:#111/50;">
+            <div style="font-size:40px;margin-bottom:8px;">🎬</div>
+            <p style="font-size:14px;font-weight:600;">Select TikTok Video</p>
+            <p style="font-size:12px;color:#AAA;margin-top:4px;">Choose from your TikTok videos</p>
+            <button style="background:#FE2C55;color:#fff;font-weight:700;padding:10px 24px;border-radius:24px;border:none;font-size:13px;margin-top:12px;cursor:pointer;">Browse Videos</button>
+        </div>
+        <!-- Fields -->
+        <div style="margin-bottom:16px;">
+            <label style="font-size:12px;color:#AAA;margin-bottom:6px;display:block;">Product Title</label>
+            <input placeholder="What are you auctioning?" value="Jordan 4 Retro Military Black" style="width:100%;background:#111;border:1px solid #1F1F1F;border-radius:12px;padding:12px 16px;color:#fff;font-size:14px;outline:none;">
+        </div>
+        <div style="margin-bottom:16px;">
+            <label style="font-size:12px;color:#AAA;margin-bottom:6px;display:block;">Category</label>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                <span style="background:#111;border:1px solid #1F1F1F;padding:8px 16px;border-radius:20px;font-size:12px;cursor:pointer;">Electronics</span>
+                <span style="background:#111;border:1px solid #1F1F1F;padding:8px 16px;border-radius:20px;font-size:12px;cursor:pointer;">Fashion</span>
+                <span style="background:#FE2C55;padding:8px 16px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;">Sneakers</span>
+                <span style="background:#111;border:1px solid #1F1F1F;padding:8px 16px;border-radius:20px;font-size:12px;cursor:pointer;">Luxury</span>
+                <span style="background:#111;border:1px solid #1F1F1F;padding:8px 16px;border-radius:20px;font-size:12px;cursor:pointer;">Gaming</span>
+                <span style="background:#111;border:1px solid #1F1F1F;padding:8px 16px;border-radius:20px;font-size:12px;cursor:pointer;">Collectibles</span>
+                <span style="background:#111;border:1px solid #1F1F1F;padding:8px 16px;border-radius:20px;font-size:12px;cursor:pointer;">Home</span>
+                <span style="background:#111;border:1px solid #1F1F1F;padding:8px 16px;border-radius:20px;font-size:12px;cursor:pointer;">Mystery Boxes</span>
+            </div>
+        </div>
+        <div style="margin-bottom:16px;">
+            <label style="font-size:12px;color:#AAA;margin-bottom:6px;display:block;">Condition</label>
+            <div style="display:flex;gap:8px;">
+                <span style="background:#25F4EE;color:#000;padding:8px 16px;border-radius:20px;font-size:12px;font-weight:600;">New</span>
+                <span style="background:#111;border:1px solid #1F1F1F;padding:8px 16px;border-radius:20px;font-size:12px;">Like New</span>
+                <span style="background:#111;border:1px solid #1F1F1F;padding:8px 16px;border-radius:20px;font-size:12px;">Good</span>
+                <span style="background:#111;border:1px solid #1F1F1F;padding:8px 16px;border-radius:20px;font-size:12px;">Fair</span>
+            </div>
+        </div>
+        <button style="width:100%;background:linear-gradient(90deg,#25F4EE,#FE2C55);color:#fff;font-weight:700;padding:14px;border-radius:24px;border:none;font-size:14px;cursor:pointer;margin-top:12px;">Continue →</button>
+    </div>
+</div>
+</div>
+
+<!-- ==================== PROFILE SCREEN ==================== -->
+<div class="screen" id="screen-profile">
+<div class="tiktok-container" style="padding-bottom:80px;">
+    <div style="padding:24px 16px;">
+        <div style="display:flex;align-items:center;gap:16px;">
+            <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#FE2C55,#25F4EE);padding:2px;">
+                <div style="width:100%;height:100%;border-radius:50%;background:#111;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;">SV</div>
+            </div>
+            <div style="flex:1;">
+                <h1 style="font-size:18px;font-weight:700;">Sarah V.</h1>
+                <p style="font-size:13px;color:#25F4EE;">@sneaker_vault</p>
+                <div style="display:flex;gap:8px;margin-top:4px;">
+                    <span style="font-size:11px;background:rgba(254,44,85,0.2);color:#FE2C55;padding:2px 8px;border-radius:10px;">⭐ Seller</span>
+                    <span style="font-size:11px;background:rgba(37,244,238,0.2);color:#25F4EE;padding:2px 8px;border-radius:10px;">Verified</span>
+                </div>
+            </div>
+            <div style="display:flex;gap:8px;">
+                <div style="width:36px;height:36px;border-radius:50%;background:#111;border:1px solid #1F1F1F;display:flex;align-items:center;justify-content:center;">⚙️</div>
+                <div style="width:36px;height:36px;border-radius:50%;background:#111;border:1px solid #1F1F1F;display:flex;align-items:center;justify-content:center;color:#FE2C55;font-size:14px;">↪</div>
+            </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:16px;text-align:center;">
+            <div><p style="font-size:18px;font-weight:700;">24</p><p style="font-size:10px;color:#AAA;">Auctions</p></div>
+            <div><p style="font-size:18px;font-weight:700;">12</p><p style="font-size:10px;color:#AAA;">Won</p></div>
+            <div><p style="font-size:18px;font-weight:700;">89</p><p style="font-size:10px;color:#AAA;">Bids</p></div>
+            <div><p style="font-size:18px;font-weight:700;color:#25F4EE;">$2,450</p><p style="font-size:10px;color:#AAA;">Balance</p></div>
+        </div>
+    </div>
+    <!-- Tabs -->
+    <div style="display:flex;border-bottom:1px solid #1F1F1F;overflow-x:auto;padding:0 16px;">
+        <button style="padding:12px 16px;font-size:13px;font-weight:600;color:#fff;border:none;background:none;border-bottom:2px solid #FE2C55;white-space:nowrap;">Overview</button>
+        <button style="padding:12px 16px;font-size:13px;font-weight:600;color:#AAA;border:none;background:none;white-space:nowrap;">Selling</button>
+        <button style="padding:12px 16px;font-size:13px;font-weight:600;color:#AAA;border:none;background:none;white-space:nowrap;">Buying</button>
+        <button style="padding:12px 16px;font-size:13px;font-weight:600;color:#AAA;border:none;background:none;white-space:nowrap;">Wallet</button>
+        <button style="padding:12px 16px;font-size:13px;font-weight:600;color:#AAA;border:none;background:none;white-space:nowrap;">Saved</button>
+    </div>
+    <!-- Overview Stats -->
+    <div style="padding:16px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div style="background:#111;border-radius:12px;padding:12px;border:1px solid #1F1F1F;"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;"><span style="color:#25F4EE;">🔨</span><span style="font-size:11px;color:#AAA;">Active Auctions</span></div><p style="font-size:18px;font-weight:700;">5</p></div>
+            <div style="background:#111;border-radius:12px;padding:12px;border:1px solid #1F1F1F;"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;"><span style="color:#FE2C55;">📈</span><span style="font-size:11px;color:#AAA;">Total Bids</span></div><p style="font-size:18px;font-weight:700;">89</p></div>
+            <div style="background:#111;border-radius:12px;padding:12px;border:1px solid #1F1F1F;"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;"><span>📦</span><span style="font-size:11px;color:#AAA;">Orders</span></div><p style="font-size:18px;font-weight:700;">18</p></div>
+            <div style="background:#111;border-radius:12px;padding:12px;border:1px solid #1F1F1F;"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;"><span>💰</span><span style="font-size:11px;color:#AAA;">Earnings</span></div><p style="font-size:18px;font-weight:700;">$2,450</p></div>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- ==================== WALLET SCREEN ==================== -->
+<div class="screen" id="screen-wallet">
+<div class="tiktok-container">
+    <div style="padding:16px;">
+        <h2 style="font-size:18px;font-weight:700;margin-bottom:16px;">Wallet</h2>
+        <!-- Balance Card -->
+        <div style="background:linear-gradient(135deg,rgba(254,44,85,0.2),rgba(37,244,238,0.2));border-radius:20px;padding:24px;border:1px solid #1F1F1F;margin-bottom:16px;">
+            <p style="font-size:11px;color:#AAA;text-transform:uppercase;">Available Balance</p>
+            <p style="font-size:36px;font-weight:800;color:#25F4EE;margin-top:4px;">$2,450.00</p>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;">
+            <div style="background:#111;border-radius:12px;padding:12px;border:1px solid #1F1F1F;"><p style="font-size:10px;color:#AAA;">Pending</p><p style="font-size:14px;font-weight:700;color:#eab308;">$840.00</p></div>
+            <div style="background:#111;border-radius:12px;padding:12px;border:1px solid #1F1F1F;"><p style="font-size:10px;color:#AAA;">Withdrawn</p><p style="font-size:14px;font-weight:700;color:#22c55e;">$5,120.00</p></div>
+            <div style="background:#111;border-radius:12px;padding:12px;border:1px solid #1F1F1F;"><p style="font-size:10px;color:#AAA;">Fees Paid</p><p style="font-size:14px;font-weight:700;color:#FE2C55;">$612.00</p></div>
+        </div>
+        <!-- Withdraw -->
+        <div style="background:#111;border-radius:20px;padding:20px;border:1px solid #1F1F1F;">
+            <h3 style="font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px;margin-bottom:12px;"><span style="color:#25F4EE;">↗️</span> Withdraw Funds</h3>
+            <input placeholder="Amount (min $10)" style="width:100%;background:#000;border:1px solid #1F1F1F;border-radius:12px;padding:12px 16px;color:#fff;font-size:14px;outline:none;margin-bottom:12px;">
+            <div style="display:flex;gap:8px;margin-bottom:12px;">
+                <span style="flex:1;background:#25F4EE;color:#000;padding:10px;border-radius:8px;font-size:12px;font-weight:600;text-align:center;">Stripe</span>
+                <span style="flex:1;background:#000;border:1px solid #1F1F1F;color:#AAA;padding:10px;border-radius:8px;font-size:12px;text-align:center;">PayPal</span>
+                <span style="flex:1;background:#000;border:1px solid #1F1F1F;color:#AAA;padding:10px;border-radius:8px;font-size:12px;text-align:center;">Bank</span>
+            </div>
+            <button style="width:100%;background:#25F4EE;color:#000;font-weight:700;padding:14px;border-radius:24px;border:none;font-size:14px;cursor:pointer;">Request Payout</button>
+        </div>
+        <!-- History -->
+        <h3 style="font-size:14px;font-weight:700;margin:20px 0 12px;">Payout History</h3>
+        <div style="background:#111;border-radius:12px;border:1px solid #1F1F1F;padding:12px;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <div><p style="font-size:14px;font-weight:700;">$500.00</p><p style="font-size:11px;color:#AAA;">Stripe · Feb 28, 2026</p></div>
+            <span style="font-size:10px;background:rgba(34,197,94,0.2);color:#22c55e;padding:2px 8px;border-radius:10px;">completed</span>
+        </div>
+        <div style="background:#111;border-radius:12px;border:1px solid #1F1F1F;padding:12px;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <div><p style="font-size:14px;font-weight:700;">$250.00</p><p style="font-size:11px;color:#AAA;">PayPal · Mar 1, 2026</p></div>
+            <span style="font-size:10px;background:rgba(234,179,8,0.2);color:#eab308;padding:2px 8px;border-radius:10px;">processing</span>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- ==================== ADMIN SCREEN ==================== -->
+<div class="screen" id="screen-admin">
+<div style="display:flex;min-height:100vh;">
+    <!-- Sidebar -->
+    <div style="width:220px;background:#0a0a0a;border-right:1px solid #1F1F1F;padding-top:0;position:fixed;left:0;top:44px;bottom:0;overflow-y:auto;">
+        <div style="padding:16px;border-bottom:1px solid #1F1F1F;">
+            <h1 style="font-size:18px;font-weight:700;" class="tiktok-gradient">Admin HUD</h1>
+            <p style="font-size:11px;color:#AAA;margin-top:2px;">Control Panel</p>
+        </div>
+        <nav style="padding:8px 0;">
+            <a style="display:flex;align-items:center;gap:12px;padding:10px 16px;color:#FE2C55;background:rgba(254,44,85,0.1);border-right:2px solid #FE2C55;font-size:13px;text-decoration:none;">📊 Dashboard</a>
+            <a style="display:flex;align-items:center;gap:12px;padding:10px 16px;color:#AAA;font-size:13px;text-decoration:none;">🔨 Auctions</a>
+            <a style="display:flex;align-items:center;gap:12px;padding:10px 16px;color:#AAA;font-size:13px;text-decoration:none;">👥 Users & Sellers</a>
+            <a style="display:flex;align-items:center;gap:12px;padding:10px 16px;color:#AAA;font-size:13px;text-decoration:none;">💰 Payments</a>
+            <a style="display:flex;align-items:center;gap:12px;padding:10px 16px;color:#AAA;font-size:13px;text-decoration:none;">🚀 Boost Campaigns</a>
+            <a style="display:flex;align-items:center;gap:12px;padding:10px 16px;color:#AAA;font-size:13px;text-decoration:none;">⚠️ Fraud Detection</a>
+            <a style="display:flex;align-items:center;gap:12px;padding:10px 16px;color:#AAA;font-size:13px;text-decoration:none;">📋 Audit Logs</a>
+            <a style="display:flex;align-items:center;gap:12px;padding:10px 16px;color:#AAA;font-size:13px;text-decoration:none;">⚙️ Settings</a>
+        </nav>
+    </div>
+    <!-- Main -->
+    <div style="flex:1;margin-left:220px;padding:24px;">
+        <h2 style="font-size:20px;font-weight:700;margin-bottom:20px;">Dashboard Overview</h2>
+        <!-- Stats Grid -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;">
+            <div class="hud-border glow-cyan" style="border-radius:12px;padding:16px;">
+                <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span style="color:#25F4EE;">📈</span><span style="font-size:11px;color:#AAA;">live</span></div>
+                <p style="font-size:24px;font-weight:700;color:#25F4EE;">42</p>
+                <p style="font-size:11px;color:#AAA;margin-top:4px;">Active Auctions</p>
+            </div>
+            <div class="hud-border glow-pink" style="border-radius:12px;padding:16px;">
+                <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span style="color:#FE2C55;">⚡</span><span style="font-size:11px;color:#AAA;">24h</span></div>
+                <p style="font-size:24px;font-weight:700;color:#FE2C55;">1,247</p>
+                <p style="font-size:11px;color:#AAA;margin-top:4px;">Bids Today</p>
+            </div>
+            <div class="hud-border" style="border-radius:12px;padding:16px;">
+                <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span style="color:#25F4EE;">💰</span><span style="font-size:11px;color:#AAA;">all time</span></div>
+                <p style="font-size:24px;font-weight:700;color:#25F4EE;">$284,920</p>
+                <p style="font-size:11px;color:#AAA;margin-top:4px;">Total Revenue</p>
+            </div>
+            <div class="hud-border" style="border-radius:12px;padding:16px;">
+                <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span style="color:#FE2C55;">💸</span><span style="font-size:11px;color:#AAA;">platform</span></div>
+                <p style="font-size:24px;font-weight:700;color:#FE2C55;">$28,492</p>
+                <p style="font-size:11px;color:#AAA;margin-top:4px;">Fees Collected</p>
+            </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;">
+            <div class="hud-border" style="border-radius:12px;padding:16px;">
+                <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span>👥</span><span style="font-size:11px;color:#AAA;">registered</span></div>
+                <p style="font-size:24px;font-weight:700;">8,432</p>
+                <p style="font-size:11px;color:#AAA;margin-top:4px;">Total Users</p>
+            </div>
+            <div class="hud-border" style="border-radius:12px;padding:16px;">
+                <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span>🏪</span><span style="font-size:11px;color:#AAA;">active</span></div>
+                <p style="font-size:24px;font-weight:700;">312</p>
+                <p style="font-size:11px;color:#AAA;margin-top:4px;">Sellers</p>
+            </div>
+            <div class="hud-border" style="border-radius:12px;padding:16px;">
+                <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span>🔨</span><span style="font-size:11px;color:#AAA;">created</span></div>
+                <p style="font-size:24px;font-weight:700;">2,891</p>
+                <p style="font-size:11px;color:#AAA;margin-top:4px;">Total Auctions</p>
+            </div>
+            <div class="hud-border glow-pink" style="border-radius:12px;padding:16px;">
+                <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span style="color:#FE2C55;">⚠️</span><span style="font-size:11px;color:#AAA;">pending</span></div>
+                <p style="font-size:24px;font-weight:700;color:#FE2C55;">3</p>
+                <p style="font-size:11px;color:#AAA;margin-top:4px;">Fraud Alerts</p>
+            </div>
+        </div>
+        <!-- Top Auctions & Sellers -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px;">
+            <div class="hud-border" style="border-radius:12px;padding:16px;">
+                <h3 style="font-size:13px;font-weight:700;margin-bottom:12px;" class="neon-cyan">Top Performing Auctions</h3>
+                <div style="border-bottom:1px solid #1F1F1F/50;padding:8px 0;display:flex;justify-content:space-between;"><div><p style="font-size:13px;font-weight:500;">Jordan 4 Military Black</p><p style="font-size:11px;color:#AAA;">23 bids</p></div><p style="font-size:13px;font-weight:700;color:#25F4EE;">$185</p></div>
+                <div style="border-bottom:1px solid #1F1F1F/50;padding:8px 0;display:flex;justify-content:space-between;"><div><p style="font-size:13px;font-weight:500;">PS5 Slim Bundle</p><p style="font-size:11px;color:#AAA;">47 bids</p></div><p style="font-size:13px;font-weight:700;color:#25F4EE;">$320</p></div>
+                <div style="border-bottom:1px solid #1F1F1F/50;padding:8px 0;display:flex;justify-content:space-between;"><div><p style="font-size:13px;font-weight:500;">Rolex Submariner</p><p style="font-size:11px;color:#AAA;">15 bids</p></div><p style="font-size:13px;font-weight:700;color:#25F4EE;">$5,200</p></div>
+            </div>
+            <div class="hud-border" style="border-radius:12px;padding:16px;">
+                <h3 style="font-size:13px;font-weight:700;margin-bottom:12px;" class="neon-pink">Top Sellers</h3>
+                <div style="padding:8px 0;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #1F1F1F/50;"><div style="display:flex;align-items:center;gap:8px;"><div style="width:32px;height:32px;border-radius:50%;background:#222;display:flex;align-items:center;justify-content:center;font-size:12px;">SV</div><div><p style="font-size:13px;font-weight:500;">@sneaker_vault</p><p style="font-size:11px;color:#AAA;">128 sales</p></div></div><span style="font-size:13px;">⭐ 4.9</span></div>
+                <div style="padding:8px 0;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #1F1F1F/50;"><div style="display:flex;align-items:center;gap:8px;"><div style="width:32px;height:32px;border-radius:50%;background:#222;display:flex;align-items:center;justify-content:center;font-size:12px;">TC</div><div><p style="font-size:13px;font-weight:500;">@tech_collector</p><p style="font-size:11px;color:#AAA;">89 sales</p></div></div><span style="font-size:13px;">⭐ 4.7</span></div>
+                <div style="padding:8px 0;display:flex;justify-content:space-between;align-items:center;"><div style="display:flex;align-items:center;gap:8px;"><div style="width:32px;height:32px;border-radius:50%;background:#222;display:flex;align-items:center;justify-content:center;font-size:12px;">LF</div><div><p style="font-size:13px;font-weight:500;">@luxury_finds</p><p style="font-size:11px;color:#AAA;">64 sales</p></div></div><span style="font-size:13px;">⭐ 4.8</span></div>
+            </div>
+        </div>
+        <!-- Financial Summary -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
+            <div class="hud-border" style="border-radius:12px;padding:16px;text-align:center;"><p style="font-size:11px;color:#AAA;">Escrow Held</p><p style="font-size:20px;font-weight:700;color:#eab308;">$12,840</p></div>
+            <div class="hud-border" style="border-radius:12px;padding:16px;text-align:center;"><p style="font-size:11px;color:#AAA;">Pending Payouts</p><p style="font-size:20px;font-weight:700;color:#FE2C55;">$3,200</p></div>
+            <div class="hud-border" style="border-radius:12px;padding:16px;text-align:center;"><p style="font-size:11px;color:#AAA;">Total Bids</p><p style="font-size:20px;font-weight:700;color:#25F4EE;">47,891</p></div>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- ==================== NOTIFICATIONS SCREEN ==================== -->
+<div class="screen" id="screen-notifications">
+<div class="tiktok-container" style="padding-bottom:80px;">
+    <div style="padding:16px;border-bottom:1px solid #1F1F1F;"><h2 style="font-size:18px;font-weight:700;">Inbox</h2></div>
+    <div>
+        <div style="padding:16px;border-bottom:1px solid #1F1F1F;display:flex;gap:12px;background:rgba(254,44,85,0.05);">
+            <div style="width:40px;height:40px;border-radius:50%;background:rgba(254,44,85,0.2);display:flex;align-items:center;justify-content:center;">🔥</div>
+            <div style="flex:1;"><p style="font-size:14px;font-weight:600;">You've been outbid!</p><p style="font-size:12px;color:#AAA;margin-top:2px;">Someone bid $195 on Jordan 4 Military Black</p><p style="font-size:11px;color:#FE2C55;margin-top:4px;">2 min ago</p></div>
+        </div>
+        <div style="padding:16px;border-bottom:1px solid #1F1F1F;display:flex;gap:12px;">
+            <div style="width:40px;height:40px;border-radius:50%;background:rgba(234,179,8,0.2);display:flex;align-items:center;justify-content:center;">⏰</div>
+            <div style="flex:1;"><p style="font-size:14px;font-weight:600;">Auction ending soon</p><p style="font-size:12px;color:#AAA;margin-top:2px;">PS5 Slim Bundle ends in 5 minutes!</p><p style="font-size:11px;color:#AAA;margin-top:4px;">5 min ago</p></div>
+        </div>
+        <div style="padding:16px;border-bottom:1px solid #1F1F1F;display:flex;gap:12px;">
+            <div style="width:40px;height:40px;border-radius:50%;background:rgba(37,244,238,0.2);display:flex;align-items:center;justify-content:center;">🎉</div>
+            <div style="flex:1;"><p style="font-size:14px;font-weight:600;">You won an auction!</p><p style="font-size:12px;color:#AAA;margin-top:2px;">Congratulations! You won Nike Dunk Low for $120</p><p style="font-size:11px;color:#AAA;margin-top:4px;">1 hour ago</p></div>
+        </div>
+        <div style="padding:16px;border-bottom:1px solid #1F1F1F;display:flex;gap:12px;">
+            <div style="width:40px;height:40px;border-radius:50%;background:rgba(34,197,94,0.2);display:flex;align-items:center;justify-content:center;">🆕</div>
+            <div style="flex:1;"><p style="font-size:14px;font-weight:600;">New auction from @sneaker_vault</p><p style="font-size:12px;color:#AAA;margin-top:2px;">Air Jordan 1 High just listed! Starting at $80</p><p style="font-size:11px;color:#AAA;margin-top:4px;">3 hours ago</p></div>
+        </div>
+        <div style="padding:16px;border-bottom:1px solid #1F1F1F;display:flex;gap:12px;">
+            <div style="width:40px;height:40px;border-radius:50%;background:rgba(254,44,85,0.2);display:flex;align-items:center;justify-content:center;">💰</div>
+            <div style="flex:1;"><p style="font-size:14px;font-weight:600;">Payout completed</p><p style="font-size:12px;color:#AAA;margin-top:2px;">$500.00 has been sent to your Stripe account</p><p style="font-size:11px;color:#AAA;margin-top:4px;">Yesterday</p></div>
+        </div>
+    </div>
+</div>
+</div>
+
+<script>
+// Screen navigation
+document.querySelectorAll('#previewNav button').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('#previewNav button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById('screen-' + btn.dataset.screen).classList.add('active');
+    });
+});
+</script>
+</body>
+</html>
