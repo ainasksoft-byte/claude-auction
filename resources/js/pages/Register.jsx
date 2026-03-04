@@ -1,78 +1,56 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useTheme } from '../hooks/useTheme';
 import { useAuth } from '../hooks/useAuth';
-import { toast } from '../components/ui/Toaster';
+import { Zap } from 'lucide-react';
 
 export default function Register() {
     const navigate = useNavigate();
-    const { theme } = useTheme();
     const { register } = useAuth();
-    const isDark = theme === 'dark';
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [passwordConfirmation, setPasswordConfirmation] = useState('');
+    const [passwordConfirm, setPasswordConfirm] = useState('');
+    const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!name || !email || !password || !passwordConfirmation) {
-            toast('Please fill in all fields', 'error');
-            return;
-        }
-        if (password !== passwordConfirmation) {
-            toast('Passwords do not match', 'error');
-            return;
-        }
-        if (password.length < 8) {
-            toast('Password must be at least 8 characters', 'error');
-            return;
-        }
+        if (password !== passwordConfirm) { setError('Passwords do not match'); return; }
+        setError('');
         setLoading(true);
         try {
-            await register(name, email, password, passwordConfirmation);
-            toast('Account created successfully!', 'success');
+            await register(name, email, password, passwordConfirm);
             navigate('/');
         } catch (err) {
-            const message = err.response?.data?.message || 'Registration failed';
-            toast(message, 'error');
-        } finally {
-            setLoading(false);
-        }
+            setError(err.response?.data?.message || 'Registration failed');
+        } finally { setLoading(false); }
     };
 
-    const inputClass = `w-full px-4 py-3 rounded-xl text-sm outline-none transition focus:ring-2 focus:ring-tiktok-red ${
-        isDark ? 'bg-[#262626] text-white placeholder-gray-500' : 'bg-gray-100 text-gray-900 placeholder-gray-400'
-    }`;
-
     return (
-        <div className="min-h-screen flex items-center justify-center px-4 pb-20">
+        <div className="tiktok-container bg-black min-h-screen flex flex-col items-center justify-center px-6">
             <div className="w-full max-w-sm">
                 <div className="text-center mb-8">
-                    <h1 className="text-3xl font-extrabold mb-2">
-                        <span className="bg-gradient-to-r from-tiktok-red to-tiktok-cyan bg-clip-text text-transparent">Auction IO</span>
-                    </h1>
-                    <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Create your account</p>
+                    <div className="w-16 h-16 bg-gradient-to-br from-[#25F4EE] to-[#FE2C55] rounded-2xl flex items-center justify-center mx-auto mb-4">
+                        <Zap className="w-8 h-8 text-white" />
+                    </div>
+                    <h1 className="text-2xl font-bold">Create Account</h1>
+                    <p className="text-sm text-[#AAA] mt-1">Join TikTok Auctions</p>
                 </div>
 
+                {error && <div className="bg-[#FE2C55]/10 border border-[#FE2C55]/30 rounded-xl px-4 py-3 mb-4 text-sm text-[#FE2C55]">{error}</div>}
+
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Full Name" className={inputClass} />
-                    <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" className={inputClass} />
-                    <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" className={inputClass} />
-                    <input type="password" value={passwordConfirmation} onChange={e => setPasswordConfirmation(e.target.value)} placeholder="Confirm Password" className={inputClass} />
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full py-3 bg-tiktok-red text-white font-bold rounded-xl hover:bg-red-600 disabled:opacity-50 transition"
-                    >
-                        {loading ? 'Creating account...' : 'Create Account'}
+                    <input value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-[#111] border border-[#1F1F1F] rounded-xl px-4 py-3.5 text-white outline-none focus:border-[#25F4EE] text-sm" placeholder="Full Name" required />
+                    <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-[#111] border border-[#1F1F1F] rounded-xl px-4 py-3.5 text-white outline-none focus:border-[#25F4EE] text-sm" placeholder="Email" required />
+                    <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-[#111] border border-[#1F1F1F] rounded-xl px-4 py-3.5 text-white outline-none focus:border-[#25F4EE] text-sm" placeholder="Password" required minLength={8} />
+                    <input type="password" value={passwordConfirm} onChange={(e) => setPasswordConfirm(e.target.value)} className="w-full bg-[#111] border border-[#1F1F1F] rounded-xl px-4 py-3.5 text-white outline-none focus:border-[#25F4EE] text-sm" placeholder="Confirm Password" required />
+                    <button type="submit" disabled={loading} className="w-full bg-[#FE2C55] text-white font-bold py-3.5 rounded-full text-sm disabled:opacity-50 active:scale-95 transition-transform">
+                        {loading ? 'Creating...' : 'Create Account'}
                     </button>
                 </form>
 
-                <p className={`text-center mt-6 text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                    Already have an account?{' '}
-                    <Link to="/login" className="text-tiktok-red font-semibold hover:underline">Sign In</Link>
+                <p className="text-center text-sm text-[#AAA] mt-6">
+                    Already have an account? <Link to="/login" className="text-[#25F4EE] font-semibold">Sign In</Link>
                 </p>
             </div>
         </div>

@@ -1,258 +1,377 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useTheme } from '../hooks/useTheme';
+import { ArrowLeft, Upload, Video, DollarSign, Clock, Tag, FileText, Rocket, Plus, X, Image } from 'lucide-react';
+import api from '../lib/api';
 import { useAuth } from '../hooks/useAuth';
 import TikTokVideoPicker from '../components/TikTokVideoPicker';
-import api from '../lib/api';
-import { toast } from '../components/ui/Toaster';
-import { validateTikTokUrl } from '../lib/utils';
 
-const categories = [
-    'Automotive', 'Watches', 'Electronics', 'Fashion', 'Photography',
-    'Gaming', 'Luxury', 'Art', 'Collectibles', 'Sports', 'Home', 'Other'
+const CATEGORIES = ['Electronics', 'Fashion', 'Sneakers', 'Luxury', 'Gaming', 'Collectibles', 'Home', 'Mystery Boxes'];
+const CONDITIONS = ['New', 'Like New', 'Good', 'Fair', 'Used'];
+const DURATIONS = [
+    { label: '1 Hour', hours: 1 },
+    { label: '6 Hours', hours: 6 },
+    { label: '12 Hours', hours: 12 },
+    { label: '1 Day', hours: 24 },
+    { label: '3 Days', hours: 72 },
+    { label: '7 Days', hours: 168 },
 ];
 
 export default function CreateAuction() {
     const navigate = useNavigate();
-    const { theme } = useTheme();
-    const { isAuthenticated, user } = useAuth();
-    const isDark = theme === 'dark';
-    const [showVideoPicker, setShowVideoPicker] = useState(false);
+    const { user } = useAuth();
+    const [step, setStep] = useState(1);
     const [submitting, setSubmitting] = useState(false);
-    const [imageFiles, setImageFiles] = useState([]);
-    const [imagePreviews, setImagePreviews] = useState([]);
-    const [errors, setErrors] = useState({});
-
+    const [showVideoPicker, setShowVideoPicker] = useState(false);
+    const [images, setImages] = useState([]);
     const [form, setForm] = useState({
         title: '',
         description: '',
         category: '',
-        current_bid: '',
-        reserve_price: '',
-        start_time: '',
-        end_time: '',
+        condition: 'New',
+        retail_price: '',
+        starting_bid: '1.00',
+        bid_increment: '1.00',
+        duration_hours: 24,
         tiktok_video_url: '',
+        reserve_price: '',
     });
 
-    if (!isAuthenticated) {
-        return (
-            <div className="min-h-screen flex flex-col items-center justify-center pb-20 px-4">
-                <h2 className={`text-xl font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>Sign in to Create</h2>
-                <p className={`text-sm mb-6 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>You need to be logged in to create an auction.</p>
-                <button onClick={() => navigate('/login')} className="px-6 py-3 bg-tiktok-red text-white font-bold rounded-xl">
-                    Sign In
-                </button>
-            </div>
-        );
+    if (!user) {
+        navigate('/login');
+        return null;
     }
 
-    const handleChange = (field, value) => {
-        setForm(prev => ({ ...prev, [field]: value }));
-        if (errors[field]) setErrors(prev => ({ ...prev, [field]: null }));
-    };
+    const updateForm = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 
-    const handleImageChange = (e) => {
+    const handleImageUpload = async (e) => {
         const files = Array.from(e.target.files);
-        setImageFiles(prev => [...prev, ...files]);
-        files.forEach(file => {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setImagePreviews(prev => [...prev, reader.result]);
-            };
-            reader.readAsDataURL(file);
-        });
-    };
-
-    const removeImage = (index) => {
-        setImageFiles(prev => prev.filter((_, i) => i !== index));
-        setImagePreviews(prev => prev.filter((_, i) => i !== index));
-    };
-
-    const validate = () => {
-        const errs = {};
-        if (!form.title.trim()) errs.title = 'Title is required';
-        if (!form.description.trim()) errs.description = 'Description is required';
-        if (!form.category) errs.category = 'Category is required';
-        if (!form.current_bid || parseFloat(form.current_bid) <= 0) errs.current_bid = 'Starting bid must be greater than 0';
-        if (!form.start_time) errs.start_time = 'Start time is required';
-        if (!form.end_time) errs.end_time = 'End time is required';
-        if (form.start_time && form.end_time && new Date(form.end_time) <= new Date(form.start_time)) {
-            errs.end_time = 'End time must be after start time';
-        }
-        if (form.tiktok_video_url && !validateTikTokUrl(form.tiktok_video_url)) {
-            errs.tiktok_video_url = 'Invalid TikTok URL format';
-        }
-        setErrors(errs);
-        return Object.keys(errs).length === 0;
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        if (!validate()) return;
-
-        setSubmitting(true);
+        if (files.length === 0) return;
+        const formData = new FormData();
+        files.forEach(f => formData.append('images[]', f));
         try {
-            let imageUrls = [];
-            if (imageFiles.length > 0) {
-                const formData = new FormData();
-                imageFiles.forEach(file => formData.append('images[]', file));
-                const { data: uploadData } = await api.post('/auctions/upload-images', formData, {
-                    headers: { 'Content-Type': 'multipart/form-data' },
-                });
-                imageUrls = uploadData.urls;
-            }
+            const { data } = await api.post('/auctions/upload-images', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            });
+            setImages(prev => [...prev, ...(data.urls || data)]);
+        } catch (err) { alert('Upload failed'); }
+    };
+
+    const handleSubmit = async () => {
+        try {
+            setSubmitting(true);
+            const startTime = new Date();
+            const endTime = new Date(startTime.getTime() + form.duration_hours * 60 * 60 * 1000);
 
             const { data } = await api.post('/auctions', {
-                ...form,
-                current_bid: parseFloat(form.current_bid),
-                reserve_price: form.reserve_price ? parseFloat(form.reserve_price) : null,
-                images: imageUrls,
+                title: form.title,
+                description: form.description,
+                category: form.category,
+                condition: form.condition,
+                retail_price: form.retail_price || null,
+                starting_bid: parseFloat(form.starting_bid),
+                bid_increment: parseFloat(form.bid_increment),
+                current_bid: 0,
+                reserve_price: form.reserve_price || null,
+                start_time: startTime.toISOString(),
+                end_time: endTime.toISOString(),
+                status: 'live',
+                tiktok_video_url: form.tiktok_video_url || null,
+                image_urls: images,
             });
-
-            toast('Auction created successfully!', 'success');
             navigate(`/auction/${data.id}`);
         } catch (err) {
-            const msg = err.response?.data?.message || 'Failed to create auction';
-            toast(msg, 'error');
-            if (err.response?.data?.errors) {
-                setErrors(err.response.data.errors);
-            }
-        } finally {
-            setSubmitting(false);
-        }
+            alert(err.response?.data?.message || 'Failed to create auction');
+        } finally { setSubmitting(false); }
     };
 
-    const inputClass = `w-full px-4 py-3 rounded-xl text-sm outline-none transition ${
-        isDark ? 'bg-[#262626] text-white placeholder-gray-500 focus:ring-2 focus:ring-tiktok-red' : 'bg-gray-100 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-tiktok-red'
-    }`;
-
-    const labelClass = `block text-sm font-semibold mb-1.5 ${isDark ? 'text-gray-300' : 'text-gray-700'}`;
+    const canNext = () => {
+        if (step === 1) return form.title && form.category;
+        if (step === 2) return form.starting_bid;
+        return true;
+    };
 
     return (
-        <div className="pb-24 px-4 pt-6">
-            <div className="max-w-lg mx-auto">
-                <h1 className={`text-2xl font-bold mb-6 ${isDark ? 'text-white' : 'text-gray-900'}`}>Create Auction</h1>
+        <div className="tiktok-container bg-black min-h-screen pb-20">
+            {/* Header */}
+            <div className="sticky top-0 z-50 bg-black/90 backdrop-blur-sm border-b border-[#1F1F1F] px-4 py-3 flex items-center justify-between">
+                <button onClick={() => step > 1 ? setStep(step - 1) : navigate(-1)} className="p-1">
+                    <ArrowLeft className="w-6 h-6" />
+                </button>
+                <h1 className="text-base font-bold">Create Auction</h1>
+                <div className="text-xs text-[#AAA]">Step {step}/3</div>
+            </div>
 
-                <form onSubmit={handleSubmit} className="space-y-5">
-                    {/* Title */}
-                    <div>
-                        <label className={labelClass}>Title</label>
-                        <input type="text" value={form.title} onChange={e => handleChange('title', e.target.value)} placeholder="What are you auctioning?" className={inputClass} />
-                        {errors.title && <p className="text-tiktok-red text-xs mt-1">{errors.title}</p>}
-                    </div>
+            {/* Progress Bar */}
+            <div className="h-1 bg-[#1F1F1F]">
+                <div className="h-full bg-gradient-to-r from-[#25F4EE] to-[#FE2C55] transition-all duration-300" style={{ width: `${(step / 3) * 100}%` }} />
+            </div>
 
-                    {/* Description */}
-                    <div>
-                        <label className={labelClass}>Description</label>
-                        <textarea value={form.description} onChange={e => handleChange('description', e.target.value)} placeholder="Describe your item in detail..." rows={4} className={inputClass} />
-                        {errors.description && <p className="text-tiktok-red text-xs mt-1">{errors.description}</p>}
-                    </div>
-
-                    {/* Category */}
-                    <div>
-                        <label className={labelClass}>Category</label>
-                        <select value={form.category} onChange={e => handleChange('category', e.target.value)} className={inputClass}>
-                            <option value="">Select a category</option>
-                            {categories.map(cat => (
-                                <option key={cat} value={cat}>{cat}</option>
-                            ))}
-                        </select>
-                        {errors.category && <p className="text-tiktok-red text-xs mt-1">{errors.category}</p>}
-                    </div>
-
-                    {/* Bid amounts */}
-                    <div className="grid grid-cols-2 gap-3">
-                        <div>
-                            <label className={labelClass}>Starting Bid ($)</label>
-                            <input type="number" step="0.01" value={form.current_bid} onChange={e => handleChange('current_bid', e.target.value)} placeholder="0.00" className={inputClass} />
-                            {errors.current_bid && <p className="text-tiktok-red text-xs mt-1">{errors.current_bid}</p>}
-                        </div>
-                        <div>
-                            <label className={labelClass}>Reserve Price ($)</label>
-                            <input type="number" step="0.01" value={form.reserve_price} onChange={e => handleChange('reserve_price', e.target.value)} placeholder="Optional" className={inputClass} />
-                        </div>
-                    </div>
-
-                    {/* Times */}
-                    <div className="grid grid-cols-2 gap-3">
-                        <div>
-                            <label className={labelClass}>Start Time</label>
-                            <input type="datetime-local" value={form.start_time} onChange={e => handleChange('start_time', e.target.value)} className={inputClass} />
-                            {errors.start_time && <p className="text-tiktok-red text-xs mt-1">{errors.start_time}</p>}
-                        </div>
-                        <div>
-                            <label className={labelClass}>End Time</label>
-                            <input type="datetime-local" value={form.end_time} onChange={e => handleChange('end_time', e.target.value)} className={inputClass} />
-                            {errors.end_time && <p className="text-tiktok-red text-xs mt-1">{errors.end_time}</p>}
-                        </div>
-                    </div>
-
-                    {/* Images */}
-                    <div>
-                        <label className={labelClass}>Product Images</label>
-                        <div className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition ${
-                            isDark ? 'border-[#333] hover:border-tiktok-red/50' : 'border-gray-300 hover:border-tiktok-red/50'
-                        }`}>
-                            <input type="file" accept="image/*" multiple onChange={handleImageChange} className="hidden" id="image-upload" />
-                            <label htmlFor="image-upload" className="cursor-pointer">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={`mx-auto mb-2 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                                    <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
-                                </svg>
-                                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Click or drag images here</p>
-                            </label>
-                        </div>
-                        {imagePreviews.length > 0 && (
-                            <div className="flex gap-2 mt-3 overflow-x-auto hide-scrollbar">
-                                {imagePreviews.map((preview, i) => (
-                                    <div key={i} className="relative flex-shrink-0">
-                                        <img src={preview} alt="" className="w-20 h-20 rounded-lg object-cover" />
-                                        <button
-                                            type="button"
-                                            onClick={() => removeImage(i)}
-                                            className="absolute -top-1 -right-1 w-5 h-5 bg-tiktok-red text-white rounded-full text-xs flex items-center justify-center"
-                                        >
-                                            &times;
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
+            {/* Step 1: Product Details */}
+            {step === 1 && (
+                <div className="px-4 py-6 space-y-5 fade-in">
+                    <div className="text-center mb-6">
+                        <h2 className="text-xl font-bold">What are you selling?</h2>
+                        <p className="text-sm text-[#AAA] mt-1">Add details about your product</p>
                     </div>
 
                     {/* TikTok Video */}
                     <div>
-                        <label className={labelClass}>TikTok Video URL (Optional)</label>
-                        <input type="url" value={form.tiktok_video_url} onChange={e => handleChange('tiktok_video_url', e.target.value)} placeholder="https://www.tiktok.com/@user/video/..." className={inputClass} />
-                        {errors.tiktok_video_url && <p className="text-tiktok-red text-xs mt-1">{errors.tiktok_video_url}</p>}
-                        {user?.tiktok_open_id && (
+                        <label className="text-sm font-semibold mb-2 block flex items-center gap-2">
+                            <Video className="w-4 h-4 text-[#FE2C55]" /> TikTok Product Video
+                        </label>
+                        {form.tiktok_video_url ? (
+                            <div className="bg-[#111] rounded-xl p-3 border border-[#1F1F1F] flex items-center justify-between">
+                                <span className="text-sm text-[#25F4EE] truncate flex-1">{form.tiktok_video_url}</span>
+                                <button onClick={() => updateForm('tiktok_video_url', '')} className="text-[#FE2C55] ml-2"><X className="w-4 h-4" /></button>
+                            </div>
+                        ) : (
                             <button
-                                type="button"
                                 onClick={() => setShowVideoPicker(true)}
-                                className={`mt-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
-                                    isDark ? 'bg-[#262626] text-tiktok-cyan hover:bg-[#333]' : 'bg-gray-100 text-tiktok-cyan hover:bg-gray-200'
-                                }`}
+                                className="w-full bg-[#111] border border-dashed border-[#333] rounded-xl p-6 flex flex-col items-center gap-2 text-[#AAA]"
                             >
-                                Select from My TikTok Videos
+                                <Video className="w-8 h-8 text-[#FE2C55]" />
+                                <span className="text-sm">Select TikTok Video</span>
+                                <span className="text-xs">Record a product video on TikTok first</span>
                             </button>
                         )}
                     </div>
 
-                    {/* Submit */}
+                    {/* Images */}
+                    <div>
+                        <label className="text-sm font-semibold mb-2 block flex items-center gap-2">
+                            <Image className="w-4 h-4 text-[#25F4EE]" /> Product Images
+                        </label>
+                        <div className="flex gap-2 flex-wrap">
+                            {images.map((img, i) => (
+                                <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-[#1F1F1F]">
+                                    <img src={img} className="w-full h-full object-cover" />
+                                    <button onClick={() => setImages(images.filter((_, j) => j !== i))}
+                                        className="absolute top-1 right-1 w-5 h-5 bg-black/70 rounded-full flex items-center justify-center">
+                                        <X className="w-3 h-3" />
+                                    </button>
+                                </div>
+                            ))}
+                            <label className="w-20 h-20 rounded-lg border border-dashed border-[#333] flex items-center justify-center cursor-pointer bg-[#111]">
+                                <Plus className="w-6 h-6 text-[#AAA]" />
+                                <input type="file" multiple accept="image/*" onChange={handleImageUpload} className="hidden" />
+                            </label>
+                        </div>
+                    </div>
+
+                    {/* Title */}
+                    <div>
+                        <label className="text-sm font-semibold mb-2 block">Product Title</label>
+                        <input
+                            value={form.title}
+                            onChange={(e) => updateForm('title', e.target.value)}
+                            className="w-full bg-[#111] border border-[#1F1F1F] rounded-xl px-4 py-3 text-white outline-none focus:border-[#FE2C55] text-sm"
+                            placeholder="e.g. iPhone 15 Pro Max 256GB"
+                            maxLength={100}
+                        />
+                    </div>
+
+                    {/* Category */}
+                    <div>
+                        <label className="text-sm font-semibold mb-2 block flex items-center gap-2">
+                            <Tag className="w-4 h-4 text-[#25F4EE]" /> Category
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                            {CATEGORIES.map(cat => (
+                                <button
+                                    key={cat}
+                                    onClick={() => updateForm('category', cat)}
+                                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${form.category === cat ? 'bg-[#FE2C55] text-white' : 'bg-[#111] border border-[#1F1F1F] text-[#AAA]'}`}
+                                >
+                                    {cat}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Condition */}
+                    <div>
+                        <label className="text-sm font-semibold mb-2 block">Condition</label>
+                        <div className="flex flex-wrap gap-2">
+                            {CONDITIONS.map(cond => (
+                                <button
+                                    key={cond}
+                                    onClick={() => updateForm('condition', cond)}
+                                    className={`px-4 py-2 rounded-full text-sm ${form.condition === cond ? 'bg-[#25F4EE] text-black font-bold' : 'bg-[#111] border border-[#1F1F1F] text-[#AAA]'}`}
+                                >
+                                    {cond}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Description */}
+                    <div>
+                        <label className="text-sm font-semibold mb-2 block flex items-center gap-2">
+                            <FileText className="w-4 h-4" /> Description
+                        </label>
+                        <textarea
+                            value={form.description}
+                            onChange={(e) => updateForm('description', e.target.value)}
+                            className="w-full bg-[#111] border border-[#1F1F1F] rounded-xl px-4 py-3 text-white outline-none focus:border-[#FE2C55] text-sm min-h-[100px] resize-none"
+                            placeholder="Describe your product in detail..."
+                            maxLength={2000}
+                        />
+                    </div>
+                </div>
+            )}
+
+            {/* Step 2: Pricing */}
+            {step === 2 && (
+                <div className="px-4 py-6 space-y-5 fade-in">
+                    <div className="text-center mb-6">
+                        <h2 className="text-xl font-bold">Set Your Price</h2>
+                        <p className="text-sm text-[#AAA] mt-1">Configure auction pricing</p>
+                    </div>
+
+                    <div>
+                        <label className="text-sm font-semibold mb-2 block flex items-center gap-2">
+                            <DollarSign className="w-4 h-4 text-[#25F4EE]" /> Starting Bid
+                        </label>
+                        <input
+                            type="number"
+                            value={form.starting_bid}
+                            onChange={(e) => updateForm('starting_bid', e.target.value)}
+                            className="w-full bg-[#111] border border-[#1F1F1F] rounded-xl px-4 py-3 text-white outline-none focus:border-[#FE2C55] text-lg font-bold"
+                            placeholder="1.00"
+                            step="0.01"
+                            min="0.01"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="text-sm font-semibold mb-2 block">Bid Increment</label>
+                        <input
+                            type="number"
+                            value={form.bid_increment}
+                            onChange={(e) => updateForm('bid_increment', e.target.value)}
+                            className="w-full bg-[#111] border border-[#1F1F1F] rounded-xl px-4 py-3 text-white outline-none focus:border-[#FE2C55] text-sm"
+                            placeholder="1.00"
+                            step="0.01"
+                            min="0.01"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="text-sm font-semibold mb-2 block">Retail Price (optional)</label>
+                        <input
+                            type="number"
+                            value={form.retail_price}
+                            onChange={(e) => updateForm('retail_price', e.target.value)}
+                            className="w-full bg-[#111] border border-[#1F1F1F] rounded-xl px-4 py-3 text-white outline-none focus:border-[#FE2C55] text-sm"
+                            placeholder="Original retail price"
+                            step="0.01"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="text-sm font-semibold mb-2 block">Reserve Price (optional)</label>
+                        <input
+                            type="number"
+                            value={form.reserve_price}
+                            onChange={(e) => updateForm('reserve_price', e.target.value)}
+                            className="w-full bg-[#111] border border-[#1F1F1F] rounded-xl px-4 py-3 text-white outline-none focus:border-[#FE2C55] text-sm"
+                            placeholder="Minimum price to sell"
+                            step="0.01"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="text-sm font-semibold mb-2 block flex items-center gap-2">
+                            <Clock className="w-4 h-4 text-[#FE2C55]" /> Auction Duration
+                        </label>
+                        <div className="grid grid-cols-3 gap-2">
+                            {DURATIONS.map(d => (
+                                <button
+                                    key={d.hours}
+                                    onClick={() => updateForm('duration_hours', d.hours)}
+                                    className={`py-3 rounded-xl text-sm font-medium ${form.duration_hours === d.hours ? 'bg-[#FE2C55] text-white' : 'bg-[#111] border border-[#1F1F1F] text-[#AAA]'}`}
+                                >
+                                    {d.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Step 3: Review & Publish */}
+            {step === 3 && (
+                <div className="px-4 py-6 space-y-4 fade-in">
+                    <div className="text-center mb-6">
+                        <h2 className="text-xl font-bold">Review & Publish</h2>
+                        <p className="text-sm text-[#AAA] mt-1">Everything look good?</p>
+                    </div>
+
+                    <div className="bg-[#111] rounded-2xl border border-[#1F1F1F] overflow-hidden">
+                        {images[0] && <img src={images[0]} className="w-full h-48 object-cover" />}
+                        <div className="p-4 space-y-3">
+                            <h3 className="text-lg font-bold">{form.title}</h3>
+                            <div className="flex gap-2">
+                                <span className="bg-[#1F1F1F] px-3 py-1 rounded-full text-xs">{form.category}</span>
+                                <span className="bg-[#1F1F1F] px-3 py-1 rounded-full text-xs">{form.condition}</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <p className="text-xs text-[#AAA]">Starting Bid</p>
+                                    <p className="text-lg font-bold text-[#25F4EE]">${form.starting_bid}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-[#AAA]">Duration</p>
+                                    <p className="text-lg font-bold">{DURATIONS.find(d => d.hours === form.duration_hours)?.label}</p>
+                                </div>
+                            </div>
+                            {form.tiktok_video_url && (
+                                <div className="flex items-center gap-2 text-xs text-[#25F4EE]">
+                                    <Video className="w-4 h-4" /> TikTok video attached
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Platform fee notice */}
+                    <div className="bg-[#111] rounded-xl p-3 border border-[#1F1F1F] flex items-center gap-2">
+                        <DollarSign className="w-5 h-5 text-[#25F4EE]" />
+                        <div>
+                            <p className="text-xs font-bold">Platform Fee: 10%</p>
+                            <p className="text-xs text-[#AAA]">Deducted from winning bid upon sale completion</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Bottom Actions */}
+            <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-black/95 backdrop-blur-sm border-t border-[#1F1F1F] px-4 py-3 z-50">
+                {step < 3 ? (
                     <button
-                        type="submit"
-                        disabled={submitting}
-                        className="w-full py-4 bg-tiktok-red text-white font-bold rounded-xl hover:bg-red-600 disabled:opacity-50 transition text-lg"
+                        onClick={() => setStep(step + 1)}
+                        disabled={!canNext()}
+                        className="w-full bg-[#FE2C55] text-white font-bold py-3.5 rounded-full text-sm disabled:opacity-30 active:scale-95 transition-transform"
                     >
-                        {submitting ? 'Creating...' : 'Create Auction'}
+                        Continue
                     </button>
-                </form>
+                ) : (
+                    <button
+                        onClick={handleSubmit}
+                        disabled={submitting}
+                        className="w-full bg-gradient-to-r from-[#FE2C55] to-[#25F4EE] text-white font-bold py-3.5 rounded-full text-sm disabled:opacity-50 flex items-center justify-center gap-2 active:scale-95 transition-transform"
+                    >
+                        <Rocket className="w-5 h-5" />
+                        {submitting ? 'Publishing...' : 'Publish Auction'}
+                    </button>
+                )}
             </div>
 
-            <TikTokVideoPicker
-                isOpen={showVideoPicker}
-                onClose={() => setShowVideoPicker(false)}
-                onSelect={(url) => handleChange('tiktok_video_url', url)}
-            />
+            {showVideoPicker && (
+                <TikTokVideoPicker
+                    onSelect={(url) => { updateForm('tiktok_video_url', url); setShowVideoPicker(false); }}
+                    onClose={() => setShowVideoPicker(false)}
+                />
+            )}
         </div>
     );
 }

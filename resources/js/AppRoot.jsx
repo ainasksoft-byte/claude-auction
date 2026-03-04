@@ -11,16 +11,16 @@ import Admin from './pages/Admin';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import NotFound from './pages/NotFound';
-import { useTheme } from './hooks/useTheme';
 import { Toaster } from './components/ui/Toaster';
 
 export default function App() {
-    const { theme } = useTheme();
     const location = useLocation();
     const isAuctionDetail = location.pathname.startsWith('/auction/');
+    const isAdmin = location.pathname.startsWith('/admin');
+    const isCreate = location.pathname === '/create';
 
     return (
-        <div className={`min-h-screen ${theme === 'dark' ? 'theme-dark bg-[#0f0f0f] text-white' : 'theme-light bg-white text-[#0f0f0f]'}`}>
+        <div className="min-h-screen bg-black text-white">
             <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/auctions" element={<Auctions />} />
@@ -33,7 +33,7 @@ export default function App() {
                 <Route path="/register" element={<Register />} />
                 <Route path="*" element={<NotFound />} />
             </Routes>
-            {!isAuctionDetail && <BottomNav />}
+            {!isAuctionDetail && !isAdmin && !isCreate && <BottomNav />}
             <Toaster />
         </div>
     );

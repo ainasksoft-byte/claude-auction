@@ -1,405 +1,364 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useTheme } from '../hooks/useTheme';
-import { useAuth } from '../hooks/useAuth';
-import { useCountdown } from '../hooks/useCountdown';
-import { useSocket } from '../hooks/useSocket';
-import { formatPrice, formatDate, formatDateTime, getStatusColor, getStatusText } from '../lib/utils';
-import AuctionCard from '../components/AuctionCard';
-import TikTokEmbed from '../components/TikTokEmbed';
+import { ArrowLeft, Heart, Share2, Bookmark, Clock, Zap, Shield, MessageCircle, Star, Send, Eye, TrendingUp, AlertTriangle } from 'lucide-react';
 import api from '../lib/api';
-import { toast } from '../components/ui/Toaster';
+import { formatPrice, formatDateTime, formatTimeRemaining } from '../lib/utils';
+import { useCountdown } from '../hooks/useCountdown';
+import { useAuth } from '../hooks/useAuth';
+import TikTokEmbed from '../components/TikTokEmbed';
 
-const ArrowLeftIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
-);
-
-const BookmarkIcon = ({ filled }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
-);
-
-const BellIcon = ({ filled }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
-);
-
-const ShareIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/></svg>
-);
-
-const TrendingIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
-);
+function BidHistoryItem({ bid, isWinning }) {
+    return (
+        <div className={`flex items-center justify-between py-3 px-4 ${isWinning ? 'bg-[#25F4EE]/10 border-l-2 border-[#25F4EE]' : 'border-b border-[#1F1F1F]'}`}>
+            <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-[#222] flex items-center justify-center text-xs font-bold">
+                    {bid.bidder?.name?.[0] || '?'}
+                </div>
+                <div>
+                    <p className="text-sm font-semibold">{bid.bidder?.name || 'Anonymous'}</p>
+                    <p className="text-xs text-[#AAA]">{formatDateTime(bid.created_at)}</p>
+                </div>
+            </div>
+            <div className="text-right">
+                <p className={`text-sm font-bold ${isWinning ? 'text-[#25F4EE]' : 'text-white'}`}>{formatPrice(bid.amount)}</p>
+                {bid.triggered_anti_snipe && <p className="text-[10px] text-[#FE2C55]">Anti-snipe</p>}
+            </div>
+        </div>
+    );
+}
 
 export default function AuctionDetail() {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { theme } = useTheme();
-    const { user, isAuthenticated } = useAuth();
-    const isDark = theme === 'dark';
-
+    const { user } = useAuth();
     const [auction, setAuction] = useState(null);
     const [bids, setBids] = useState([]);
-    const [similarAuctions, setSimilarAuctions] = useState([]);
+    const [comments, setComments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [bidAmount, setBidAmount] = useState('');
-    const [bidding, setBidding] = useState(false);
+    const [autoBidMax, setAutoBidMax] = useState('');
+    const [showAutoBid, setShowAutoBid] = useState(false);
     const [saved, setSaved] = useState(false);
-    const [reminderEnabled, setReminderEnabled] = useState(false);
-    const [selectedImage, setSelectedImage] = useState(0);
+    const [liked, setLiked] = useState(false);
+    const [commentText, setCommentText] = useState('');
+    const [bidding, setBidding] = useState(false);
+    const [tab, setTab] = useState('details');
 
-    const countdown = useCountdown(auction?.end_time);
-    const { lastUpdate, refresh } = useSocket(id);
+    const { timeRemaining, isUrgent } = useCountdown(auction?.end_time);
 
-    const fetchAuction = useCallback(async () => {
+    useEffect(() => { loadAuction(); }, [id]);
+
+    const loadAuction = async () => {
         try {
-            const { data } = await api.get(`/auctions/${id}`);
-            setAuction(data);
-            setBids(data.bids || []);
-        } catch (err) {
-            toast('Failed to load auction', 'error');
-        } finally {
-            setLoading(false);
-        }
-    }, [id]);
+            setLoading(true);
+            const [auctionRes, bidsRes] = await Promise.all([
+                api.get(`/auctions/${id}`),
+                api.get(`/auctions/${id}/bids`),
+            ]);
+            setAuction(auctionRes.data);
+            setBids(bidsRes.data.data || bidsRes.data);
+            const minBid = parseFloat(auctionRes.data.current_bid || auctionRes.data.starting_bid || 1) + parseFloat(auctionRes.data.bid_increment || 1);
+            setBidAmount(minBid.toFixed(2));
 
-    useEffect(() => {
-        fetchAuction();
-    }, [fetchAuction]);
-
-    useEffect(() => {
-        if (lastUpdate) {
-            setAuction(lastUpdate);
-            setBids(lastUpdate.bids || []);
-        }
-    }, [lastUpdate]);
-
-    useEffect(() => {
-        const fetchSimilar = async () => {
-            try {
-                const { data } = await api.get(`/auctions/${id}/similar`);
-                setSimilarAuctions(data);
-            } catch (err) {}
-        };
-        if (id) fetchSimilar();
-    }, [id]);
-
-    useEffect(() => {
-        if (!isAuthenticated || !id) return;
-        const checkSaved = async () => {
-            try {
-                const { data } = await api.get(`/auctions/${id}/is-saved`);
-                setSaved(data.saved);
-            } catch (err) {}
-        };
-        const checkReminder = async () => {
-            try {
-                const { data } = await api.get(`/auctions/${id}/reminder`);
-                setReminderEnabled(data.enabled);
-            } catch (err) {}
-        };
-        checkSaved();
-        checkReminder();
-    }, [isAuthenticated, id]);
+            if (user) {
+                try {
+                    const [savedRes, likedRes, commentsRes] = await Promise.all([
+                        api.get(`/auctions/${id}/is-saved`),
+                        api.get(`/auctions/${id}/is-liked`),
+                        api.get(`/auctions/${id}/comments`),
+                    ]);
+                    setSaved(savedRes.data.saved);
+                    setLiked(likedRes.data.liked);
+                    setComments(commentsRes.data.data || commentsRes.data);
+                } catch (e) {}
+            } else {
+                try {
+                    const commentsRes = await api.get(`/auctions/${id}/comments`);
+                    setComments(commentsRes.data.data || commentsRes.data);
+                } catch (e) {}
+            }
+        } catch (err) { console.error(err); }
+        finally { setLoading(false); }
+    };
 
     const handleBid = async () => {
-        if (!isAuthenticated) { navigate('/login'); return; }
-        if (!bidAmount || parseFloat(bidAmount) <= parseFloat(auction.current_bid)) {
-            toast('Bid must be higher than current bid', 'error');
-            return;
-        }
-        setBidding(true);
+        if (!user) { navigate('/login'); return; }
         try {
-            const { data } = await api.post(`/auctions/${id}/bid`, { amount: parseFloat(bidAmount) });
-            setAuction(data.auction);
-            setBids(prev => [data.bid, ...prev]);
-            setBidAmount('');
-            toast('Bid placed successfully!', 'success');
-            refresh();
+            setBidding(true);
+            await api.post(`/auctions/${id}/bid`, { amount: parseFloat(bidAmount) });
+            loadAuction();
         } catch (err) {
-            toast(err.response?.data?.message || 'Failed to place bid', 'error');
-        } finally {
-            setBidding(false);
-        }
+            alert(err.response?.data?.message || 'Bid failed');
+        } finally { setBidding(false); }
+    };
+
+    const handleAutoBid = async () => {
+        if (!user) { navigate('/login'); return; }
+        try {
+            await api.post(`/auctions/${id}/auto-bid`, { max_amount: parseFloat(autoBidMax) });
+            setShowAutoBid(false);
+        } catch (err) { alert(err.response?.data?.message || 'Failed'); }
     };
 
     const handleSave = async () => {
-        if (!isAuthenticated) { navigate('/login'); return; }
+        if (!user) { navigate('/login'); return; }
+        try { await api.post(`/auctions/${id}/save`); setSaved(!saved); } catch (e) {}
+    };
+
+    const handleLike = async () => {
+        if (!user) { navigate('/login'); return; }
+        try { const { data } = await api.post(`/auctions/${id}/like`); setLiked(data.liked); } catch (e) {}
+    };
+
+    const handleComment = async () => {
+        if (!commentText.trim()) return;
         try {
-            const { data } = await api.post(`/auctions/${id}/save`);
-            setSaved(data.saved);
-            toast(data.saved ? 'Auction saved' : 'Auction unsaved', 'success');
-        } catch (err) {
-            toast('Failed to save auction', 'error');
-        }
+            const { data } = await api.post(`/auctions/${id}/comment`, { content: commentText });
+            setComments([data, ...comments]);
+            setCommentText('');
+        } catch (e) {}
     };
 
-    const handleToggleReminder = async () => {
-        if (!isAuthenticated) { navigate('/login'); return; }
-        try {
-            const { data } = await api.post(`/auctions/${id}/reminder`);
-            setReminderEnabled(data.enabled);
-            toast(data.enabled ? 'Reminder enabled' : 'Reminder disabled', 'success');
-        } catch (err) {
-            toast('Failed to toggle reminder', 'error');
-        }
-    };
+    if (loading) return (
+        <div className="tiktok-container bg-black min-h-screen flex items-center justify-center">
+            <div className="w-8 h-8 border-2 border-[#FE2C55] border-t-transparent rounded-full animate-spin" />
+        </div>
+    );
 
-    const handleShare = () => {
-        navigator.clipboard.writeText(window.location.href);
-        toast('Link copied to clipboard!', 'success');
-    };
+    if (!auction) return (
+        <div className="tiktok-container bg-black min-h-screen flex items-center justify-center text-[#AAA]">
+            Auction not found
+        </div>
+    );
 
-    if (loading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="animate-spin w-10 h-10 border-3 border-tiktok-red border-t-transparent rounded-full"></div>
-            </div>
-        );
-    }
-
-    if (!auction) {
-        return (
-            <div className="min-h-screen flex flex-col items-center justify-center">
-                <p className="text-xl font-bold mb-4">Auction not found</p>
-                <button onClick={() => navigate('/auctions')} className="text-tiktok-red hover:underline">Browse Auctions</button>
-            </div>
-        );
-    }
-
-    const images = auction.images || [];
+    const minBid = parseFloat(auction.current_bid || auction.starting_bid || 1) + parseFloat(auction.bid_increment || 1);
+    const isLive = auction.status === 'live' || auction.status === 'ending_soon';
 
     return (
-        <div className="pb-24">
+        <div className="tiktok-container bg-black min-h-screen pb-32">
             {/* Header */}
-            <div className={`sticky top-0 z-40 px-4 py-3 flex items-center justify-between ${isDark ? 'bg-[#0f0f0f]/95 backdrop-blur' : 'bg-white/95 backdrop-blur'}`}>
-                <button onClick={() => navigate(-1)} className={isDark ? 'text-white' : 'text-gray-900'}>
-                    <ArrowLeftIcon />
+            <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] z-50 bg-black/90 backdrop-blur-sm flex items-center justify-between px-4 py-3">
+                <button onClick={() => navigate(-1)} className="p-1">
+                    <ArrowLeft className="w-6 h-6" />
                 </button>
-                <div className="flex items-center gap-1">
-                    {(auction.status === 'live' || auction.status === 'ending_soon') && (
-                        <span className="px-2 py-1 bg-green-500 text-white text-xs font-bold rounded-full flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> LIVE
-                        </span>
-                    )}
-                </div>
-                <div className="flex items-center gap-2">
-                    <button onClick={handleSave} className={saved ? 'text-tiktok-red' : isDark ? 'text-gray-400' : 'text-gray-500'}>
-                        <BookmarkIcon filled={saved} />
+                <div className="flex items-center gap-3">
+                    <button onClick={handleLike}>
+                        <Heart className={`w-6 h-6 ${liked ? 'fill-[#FE2C55] text-[#FE2C55]' : ''}`} />
                     </button>
-                    <button onClick={handleToggleReminder} className={reminderEnabled ? 'text-tiktok-cyan' : isDark ? 'text-gray-400' : 'text-gray-500'}>
-                        <BellIcon filled={reminderEnabled} />
+                    <button onClick={handleSave}>
+                        <Bookmark className={`w-6 h-6 ${saved ? 'fill-[#25F4EE] text-[#25F4EE]' : ''}`} />
                     </button>
-                    <button onClick={handleShare} className={isDark ? 'text-gray-400' : 'text-gray-500'}>
-                        <ShareIcon />
-                    </button>
+                    <button><Share2 className="w-6 h-6" /></button>
                 </div>
             </div>
 
-            {/* Image Gallery */}
-            <div className="relative">
-                <div className="aspect-square overflow-hidden">
-                    <img
-                        src={images[selectedImage]?.url || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800'}
-                        alt={auction.title}
-                        className="w-full h-full object-cover"
-                    />
-                </div>
-                {/* Countdown overlay */}
-                {!countdown.isEnded && (
-                    <div className={`absolute top-4 right-4 px-3 py-1.5 rounded-lg font-mono text-sm font-bold ${
-                        countdown.isUrgent ? 'bg-tiktok-red text-white countdown-urgent' : 'bg-black/60 text-white'
-                    }`}>
-                        {countdown.days > 0 && `${countdown.days}d `}{countdown.hours}h {countdown.minutes}m {countdown.seconds}s
-                    </div>
-                )}
-                {/* Status badge */}
-                <span className={`absolute top-4 left-4 px-3 py-1.5 rounded-full text-xs font-bold text-white ${getStatusColor(auction.status)}`}>
-                    {getStatusText(auction.status)}
-                </span>
-                {/* Thumbnail strip */}
-                {images.length > 1 && (
-                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-                        {images.map((img, i) => (
-                            <button
-                                key={i}
-                                onClick={() => setSelectedImage(i)}
-                                className={`w-12 h-12 rounded-lg overflow-hidden border-2 transition ${
-                                    i === selectedImage ? 'border-tiktok-red' : 'border-white/30'
-                                }`}
-                            >
-                                <img src={img.url} alt="" className="w-full h-full object-cover" />
-                            </button>
-                        ))}
-                    </div>
-                )}
-            </div>
-
-            <div className="px-4 py-6 max-w-4xl mx-auto">
-                {/* Title & Creator */}
-                <h1 className={`text-2xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>{auction.title}</h1>
-                <div className="flex items-center gap-2 mb-4">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${isDark ? 'bg-[#262626] text-white' : 'bg-gray-200 text-gray-700'}`}>
-                        {auction.creator?.name?.[0] || '?'}
-                    </div>
-                    <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{auction.creator?.name || 'Unknown'}</span>
-                </div>
-
-                {/* Price */}
-                <div className="flex items-baseline gap-4 mb-6">
-                    <div>
-                        <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Current Bid</p>
-                        <p className="text-3xl font-bold text-tiktok-red">{formatPrice(auction.current_bid)}</p>
-                    </div>
-                    {auction.reserve_price && (
-                        <div>
-                            <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Reserve Price</p>
-                            <p className="text-xl font-bold text-green-500">{formatPrice(auction.reserve_price)}</p>
-                        </div>
-                    )}
-                </div>
-
-                {/* Stats Row */}
-                <div className={`grid grid-cols-4 gap-3 p-4 rounded-xl mb-6 ${isDark ? 'bg-[#1a1a1a]' : 'bg-gray-50'}`}>
-                    <div className="text-center">
-                        <p className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{auction.bids_count || bids.length}</p>
-                        <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Bids</p>
-                    </div>
-                    <div className="text-center">
-                        <p className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{auction.anti_snipe_seconds}s</p>
-                        <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Anti-Snipe</p>
-                    </div>
-                    <div className="text-center">
-                        <p className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{auction.snipe_extensions}</p>
-                        <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Extensions</p>
-                    </div>
-                    <div className="text-center">
-                        <p className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{formatDate(auction.start_time).split(',')[0]}</p>
-                        <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Started</p>
-                    </div>
-                </div>
-
-                {/* Countdown Card */}
-                {(auction.status === 'live' || auction.status === 'ending_soon') && !countdown.isEnded && (
-                    <div className={`p-4 rounded-xl mb-6 ${countdown.isUrgent ? 'bg-tiktok-red/10 border border-tiktok-red/30' : isDark ? 'bg-[#1a1a1a]' : 'bg-gray-50'}`}>
-                        <p className={`text-xs font-semibold mb-2 ${countdown.isUrgent ? 'text-tiktok-red' : isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                            {countdown.isUrgent ? 'ENDING SOON!' : 'TIME REMAINING'}
-                        </p>
-                        <div className="grid grid-cols-4 gap-2 text-center">
-                            {[
-                                { val: countdown.days, label: 'Days' },
-                                { val: countdown.hours, label: 'Hours' },
-                                { val: countdown.minutes, label: 'Minutes' },
-                                { val: countdown.seconds, label: 'Seconds' },
-                            ].map(({ val, label }) => (
-                                <div key={label}>
-                                    <p className={`text-2xl font-bold font-mono ${countdown.isUrgent ? 'text-tiktok-red' : isDark ? 'text-white' : 'text-gray-900'}`}>
-                                        {String(val).padStart(2, '0')}
-                                    </p>
-                                    <p className={`text-[10px] ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{label}</p>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* Description */}
-                <div className="mb-6">
-                    <h2 className={`text-lg font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>Description</h2>
-                    <p className={`text-sm leading-relaxed ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{auction.description}</p>
-                </div>
-
-                {/* TikTok Embed */}
-                {auction.tiktok_video_url && (
-                    <div className="mb-6">
-                        <h2 className={`text-lg font-bold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>Product Video</h2>
+            <div className="pt-14">
+                {/* Video Section */}
+                <div className="relative aspect-[9/16] max-h-[60vh] bg-[#111]">
+                    {auction.tiktok_video_url ? (
                         <TikTokEmbed url={auction.tiktok_video_url} />
-                        <a
-                            href={`https://ads.tiktok.com/i18n/creation`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition"
-                        >
-                            Boost on TikTok
-                        </a>
+                    ) : auction.images?.[0] ? (
+                        <img src={auction.images[0].url} alt={auction.title} className="w-full h-full object-cover" />
+                    ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-[#FE2C55]/20 to-[#25F4EE]/20 flex items-center justify-center">
+                            <Eye className="w-20 h-20 text-white/20" />
+                        </div>
+                    )}
+                    <div className={`absolute top-4 left-4 ${auction.status === 'live' ? 'bg-green-500' : auction.status === 'ending_soon' ? 'bg-[#FE2C55]' : 'bg-[#25F4EE]'} px-3 py-1 rounded-full text-xs font-bold uppercase`}>
+                        {auction.status === 'live' && <span className="w-2 h-2 bg-white rounded-full animate-pulse inline-block mr-1" />}
+                        {auction.status?.replace('_', ' ')}
+                    </div>
+                </div>
+
+                {/* Timer Bar */}
+                {isLive && (
+                    <div className={`flex items-center justify-center gap-2 py-3 px-4 ${isUrgent ? 'bg-[#FE2C55]/20' : 'bg-[#111]'}`}>
+                        <Clock className={`w-4 h-4 ${isUrgent ? 'text-[#FE2C55]' : 'text-[#25F4EE]'}`} />
+                        <span className={`text-lg font-mono font-bold ${isUrgent ? 'text-[#FE2C55] countdown-urgent' : 'text-[#25F4EE]'}`}>
+                            {formatTimeRemaining(timeRemaining)}
+                        </span>
+                        {isUrgent && <AlertTriangle className="w-4 h-4 text-[#FE2C55]" />}
                     </div>
                 )}
 
-                {/* Bid History */}
-                <div className="mb-6">
-                    <h2 className={`text-lg font-bold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>Bid History</h2>
-                    {bids.length > 0 ? (
-                        <div className="space-y-2">
-                            {bids.map((bid, index) => (
-                                <div
-                                    key={bid.id}
-                                    className={`flex items-center justify-between p-3 rounded-xl ${
-                                        index === 0
-                                            ? isDark ? 'bg-tiktok-red/10 border border-tiktok-red/20' : 'bg-red-50 border border-red-200'
-                                            : isDark ? 'bg-[#1a1a1a]' : 'bg-gray-50'
-                                    }`}
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${isDark ? 'bg-[#262626] text-white' : 'bg-gray-200 text-gray-700'}`}>
-                                            {bid.bidder?.name?.[0] || '?'}
+                {/* Current Bid Banner */}
+                <div className="bg-[#111] border-y border-[#1F1F1F] px-4 py-4 flex items-center justify-between">
+                    <div>
+                        <p className="text-xs text-[#AAA] uppercase">Current Bid</p>
+                        <p className="text-3xl font-bold text-[#25F4EE]">{formatPrice(auction.current_bid || auction.starting_bid || 0)}</p>
+                    </div>
+                    <div className="text-right">
+                        <p className="text-xs text-[#AAA]">{auction.bid_count || 0} bids</p>
+                        <p className="text-xs text-[#AAA]">{auction.view_count || 0} views</p>
+                    </div>
+                </div>
+
+                {/* Seller Info */}
+                <div className="px-4 py-3 flex items-center gap-3 border-b border-[#1F1F1F]">
+                    <div className="w-10 h-10 rounded-full bg-[#222] border border-[#FE2C55] overflow-hidden flex items-center justify-center">
+                        {auction.creator?.tiktok_avatar_url ? (
+                            <img src={auction.creator.tiktok_avatar_url} className="w-full h-full object-cover" />
+                        ) : (
+                            <span className="text-sm font-bold">{auction.creator?.name?.[0]}</span>
+                        )}
+                    </div>
+                    <div className="flex-1">
+                        <div className="flex items-center gap-1.5">
+                            <span className="text-sm font-bold">@{auction.creator?.tiktok_username || auction.creator?.name}</span>
+                            {auction.creator?.tiktok_is_verified && <span className="w-4 h-4 bg-[#25F4EE] rounded-full text-[8px] flex items-center justify-center">✓</span>}
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-[#AAA]">
+                            {auction.creator?.seller_rating > 0 && (
+                                <span className="flex items-center gap-0.5"><Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />{auction.creator.seller_rating}</span>
+                            )}
+                            <span>{auction.creator?.total_auctions_completed || 0} sales</span>
+                        </div>
+                    </div>
+                    <button className="border border-[#FE2C55] text-[#FE2C55] px-4 py-1.5 rounded-full text-xs font-bold">Follow</button>
+                </div>
+
+                {/* Tabs */}
+                <div className="flex border-b border-[#1F1F1F]">
+                    {['details', 'bids', 'comments'].map(t => (
+                        <button key={t} onClick={() => setTab(t)}
+                            className={`flex-1 py-3 text-sm font-semibold capitalize ${tab === t ? 'text-white border-b-2 border-[#FE2C55]' : 'text-[#AAA]'}`}>
+                            {t} {t === 'bids' && `(${bids.length})`} {t === 'comments' && `(${comments.length})`}
+                        </button>
+                    ))}
+                </div>
+
+                {tab === 'details' && (
+                    <div className="px-4 py-4 space-y-4">
+                        <h1 className="text-xl font-bold">{auction.title}</h1>
+                        <div className="flex flex-wrap gap-2">
+                            <span className="bg-[#1F1F1F] px-3 py-1 rounded-full text-xs">{auction.category}</span>
+                            {auction.condition && <span className="bg-[#1F1F1F] px-3 py-1 rounded-full text-xs">{auction.condition}</span>}
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            {auction.retail_price && (
+                                <div className="bg-[#111] rounded-xl p-3 border border-[#1F1F1F]">
+                                    <p className="text-xs text-[#AAA]">Retail Price</p>
+                                    <p className="text-lg font-bold line-through text-[#AAA]">{formatPrice(auction.retail_price)}</p>
+                                </div>
+                            )}
+                            <div className="bg-[#111] rounded-xl p-3 border border-[#1F1F1F]">
+                                <p className="text-xs text-[#AAA]">Starting Bid</p>
+                                <p className="text-lg font-bold">{formatPrice(auction.starting_bid || 0)}</p>
+                            </div>
+                            <div className="bg-[#111] rounded-xl p-3 border border-[#1F1F1F]">
+                                <p className="text-xs text-[#AAA]">Bid Increment</p>
+                                <p className="text-lg font-bold">{formatPrice(auction.bid_increment || 1)}</p>
+                            </div>
+                            <div className="bg-[#111] rounded-xl p-3 border border-[#1F1F1F]">
+                                <p className="text-xs text-[#AAA]">Ends</p>
+                                <p className="text-sm font-bold">{formatDateTime(auction.end_time)}</p>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 className="text-sm font-bold mb-2">Description</h3>
+                            <p className="text-sm text-[#AAA] leading-relaxed">{auction.description}</p>
+                        </div>
+                        <div className="bg-[#111] rounded-xl p-3 border border-[#1F1F1F] flex items-center gap-2">
+                            <Shield className="w-5 h-5 text-[#25F4EE]" />
+                            <div>
+                                <p className="text-xs font-bold">Anti-Snipe Protection</p>
+                                <p className="text-xs text-[#AAA]">Timer extends {auction.anti_snipe_seconds || 10}s on last-second bids</p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {tab === 'bids' && (
+                    <div>
+                        {bids.length === 0 ? (
+                            <div className="py-12 text-center text-[#AAA]">
+                                <TrendingUp className="w-10 h-10 mx-auto mb-2 text-[#333]" />
+                                <p className="text-sm">No bids yet. Be the first!</p>
+                            </div>
+                        ) : (
+                            bids.map((bid, i) => <BidHistoryItem key={bid.id} bid={bid} isWinning={i === 0} />)
+                        )}
+                    </div>
+                )}
+
+                {tab === 'comments' && (
+                    <div className="px-4 py-4">
+                        {user && (
+                            <div className="flex gap-2 mb-4">
+                                <input
+                                    value={commentText}
+                                    onChange={(e) => setCommentText(e.target.value)}
+                                    placeholder="Add a comment..."
+                                    className="flex-1 bg-[#111] border border-[#1F1F1F] rounded-full px-4 py-2 text-sm outline-none focus:border-[#FE2C55]"
+                                    onKeyDown={(e) => e.key === 'Enter' && handleComment()}
+                                />
+                                <button onClick={handleComment} className="w-10 h-10 bg-[#FE2C55] rounded-full flex items-center justify-center">
+                                    <Send className="w-4 h-4" />
+                                </button>
+                            </div>
+                        )}
+                        {comments.length === 0 ? (
+                            <p className="text-center text-[#AAA] text-sm py-8">No comments yet</p>
+                        ) : (
+                            <div className="space-y-3">
+                                {comments.map(c => (
+                                    <div key={c.id} className="flex gap-3">
+                                        <div className="w-8 h-8 rounded-full bg-[#222] flex items-center justify-center text-xs shrink-0">
+                                            {c.user?.name?.[0] || '?'}
                                         </div>
                                         <div>
-                                            <p className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>{bid.bidder?.name || 'Anonymous'}</p>
-                                            <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                                                {formatDateTime(bid.created_at)}
-                                                {bid.triggered_anti_snipe && <span className="ml-2 text-tiktok-red">Anti-Snipe</span>}
-                                            </p>
+                                            <p className="text-xs font-bold">{c.user?.name || 'User'} <span className="text-[#AAA] font-normal">{formatDateTime(c.created_at)}</span></p>
+                                            <p className="text-sm text-[#CCC] mt-0.5">{c.content}</p>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <p className={`font-bold ${index === 0 ? 'text-tiktok-red' : isDark ? 'text-white' : 'text-gray-900'}`}>
-                                            {formatPrice(bid.amount)}
-                                        </p>
-                                        {index === 0 && <TrendingIcon />}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>No bids yet. Be the first!</p>
-                    )}
-                </div>
-
-                {/* Similar Auctions */}
-                {similarAuctions.length > 0 && (
-                    <div>
-                        <h2 className={`text-lg font-bold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>Similar Auctions</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {similarAuctions.map(a => (
-                                <AuctionCard key={a.id} auction={a} />
-                            ))}
-                        </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
 
-            {/* Sticky Bid Bar */}
-            {(auction.status === 'live' || auction.status === 'ending_soon') && (
-                <div className={`fixed bottom-0 left-0 right-0 z-50 px-4 py-3 border-t ${
-                    isDark ? 'bg-[#0f0f0f] border-[#262626]' : 'bg-white border-gray-200'
-                }`}>
-                    <div className="max-w-lg mx-auto flex gap-3">
+            {/* Fixed Bottom Bid Bar */}
+            {isLive && (
+                <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-black/95 backdrop-blur-sm border-t border-[#1F1F1F] px-4 py-3 z-50 slide-up">
+                    <div className="flex gap-2 mb-2">
                         <input
                             type="number"
                             value={bidAmount}
-                            onChange={e => setBidAmount(e.target.value)}
-                            placeholder={`Min ${formatPrice(parseFloat(auction.current_bid) + 1)}`}
-                            className={`flex-1 px-4 py-3 rounded-xl text-sm outline-none ${
-                                isDark ? 'bg-[#262626] text-white placeholder-gray-500' : 'bg-gray-100 text-gray-900 placeholder-gray-400'
-                            }`}
+                            onChange={(e) => setBidAmount(e.target.value)}
+                            className="flex-1 bg-[#111] border border-[#1F1F1F] rounded-full px-4 py-3 text-white outline-none focus:border-[#FE2C55] text-sm"
+                            placeholder={`Min ${formatPrice(minBid)}`}
+                            step="0.01"
+                            min={minBid}
                         />
                         <button
                             onClick={handleBid}
                             disabled={bidding}
-                            className="px-8 py-3 bg-tiktok-red text-white font-bold rounded-xl hover:bg-red-600 disabled:opacity-50 transition"
+                            className="bg-[#FE2C55] text-white font-bold px-6 py-3 rounded-full text-sm flex items-center gap-2 active:scale-95 transition-transform disabled:opacity-50"
                         >
-                            {bidding ? 'Placing...' : 'Place Bid'}
+                            <Zap className="w-4 h-4" />
+                            {bidding ? '...' : 'Bid'}
                         </button>
                     </div>
+                    <div className="flex justify-between items-center">
+                        <button onClick={() => setShowAutoBid(!showAutoBid)} className="text-xs text-[#25F4EE] font-semibold">
+                            Auto-Bid {showAutoBid ? '▲' : '▼'}
+                        </button>
+                        <p className="text-xs text-[#AAA]">Min: {formatPrice(minBid)}</p>
+                    </div>
+                    {showAutoBid && (
+                        <div className="mt-2 flex gap-2">
+                            <input
+                                type="number"
+                                value={autoBidMax}
+                                onChange={(e) => setAutoBidMax(e.target.value)}
+                                className="flex-1 bg-[#111] border border-[#1F1F1F] rounded-full px-4 py-2 text-white text-sm outline-none"
+                                placeholder="Max auto-bid amount"
+                                step="0.01"
+                            />
+                            <button onClick={handleAutoBid} className="bg-[#25F4EE] text-black font-bold px-4 py-2 rounded-full text-sm">Set</button>
+                        </div>
+                    )}
                 </div>
             )}
         </div>

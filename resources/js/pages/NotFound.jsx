@@ -1,21 +1,16 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useTheme } from '../hooks/useTheme';
+import { Home } from 'lucide-react';
 
 export default function NotFound() {
     const navigate = useNavigate();
-    const { theme } = useTheme();
-    const isDark = theme === 'dark';
-
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center pb-20 px-4">
-            <h1 className="text-6xl font-extrabold mb-4">
-                <span className="bg-gradient-to-r from-tiktok-red to-tiktok-cyan bg-clip-text text-transparent">404</span>
-            </h1>
-            <p className={`text-xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>Page Not Found</p>
-            <p className={`text-sm mb-6 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>The page you're looking for doesn't exist.</p>
-            <button onClick={() => navigate('/')} className="px-6 py-3 bg-tiktok-red text-white font-bold rounded-xl hover:bg-red-600 transition">
-                Go Home
+        <div className="tiktok-container bg-black min-h-screen flex flex-col items-center justify-center px-6 text-center">
+            <p className="text-6xl font-bold tiktok-gradient mb-4">404</p>
+            <p className="text-lg font-semibold mb-2">Page Not Found</p>
+            <p className="text-sm text-[#AAA] mb-6">This auction doesn't exist yet</p>
+            <button onClick={() => navigate('/')} className="bg-[#FE2C55] text-white font-bold px-8 py-3 rounded-full text-sm flex items-center gap-2">
+                <Home className="w-4 h-4" /> Go Home
             </button>
         </div>
     );
