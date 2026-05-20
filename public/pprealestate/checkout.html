@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PakistanProperty — Schedule Visit &amp; Pay Token</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/pprealestate/assets/pp.css" />
+<style>
+  .co-shell { max-width: 1080px; margin: 0 auto; padding: 90px 24px 60px; }
+  .co-head { margin-bottom: 22px; display: flex; align-items: center; gap: 14px; }
+  .back-btn {
+    width: 38px; height: 38px; border-radius: 50%;
+    border: 1.5px solid var(--border); color: var(--text-mid);
+    display: flex; align-items: center; justify-content: center; transition: all .15s;
+  }
+  .back-btn:hover { border-color: var(--green); color: var(--green); }
+  .co-head h1 { font-size: 26px; font-weight: 800; }
+
+  .co-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 32px; align-items: start; }
+  @media (max-width: 880px) { .co-grid { grid-template-columns: 1fr; } }
+
+  .co-section { padding: 22px 0; border-bottom: 1px solid var(--border); }
+  .co-section:first-of-type { padding-top: 0; }
+  .co-section h2 { font-size: 17px; font-weight: 800; margin-bottom: 14px; }
+
+  .info-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; }
+  .info-row .lbl { font-size: 13px; font-weight: 700; color: var(--text-high); }
+  .info-row .val { font-size: 13px; color: var(--text-mid); }
+  .info-row a   { color: var(--green); font-weight: 700; font-size: 12.5px; }
+  .info-row a:hover { text-decoration: underline; }
+
+  /* Service tier tiles */
+  .tier-list { display: grid; gap: 10px; }
+  .tier {
+    display: flex; align-items: flex-start; gap: 14px;
+    padding: 14px 16px; border: 1.5px solid var(--border); border-radius: var(--radius-md);
+    cursor: pointer; transition: all .15s; background: var(--white); position: relative;
+  }
+  .tier:hover { border-color: var(--green); }
+  .tier.on { border-color: var(--green); background: var(--green-faint); }
+  .tier .radio {
+    width: 18px; height: 18px; border-radius: 50%;
+    border: 2px solid var(--border); flex-shrink: 0; margin-top: 2px;
+    position: relative; transition: border-color .15s;
+  }
+  .tier.on .radio { border-color: var(--green); }
+  .tier.on .radio::after { content:''; position: absolute; inset: 3px; border-radius: 50%; background: var(--green); }
+  .tier .info { flex: 1; }
+  .tier .t { font-size: 14px; font-weight: 800; color: var(--text-high); display: flex; align-items: center; gap: 7px; }
+  .tier .pill { font-size: 9.5px; font-weight: 800; padding: 2px 7px; border-radius: 4px; background: var(--green); color: #fff; letter-spacing: .3px; }
+  .tier .s { font-size: 11.5px; color: var(--text-muted); margin-top: 4px; line-height: 1.5; }
+  .tier .price { font-size: 14px; font-weight: 800; color: var(--text-high); flex-shrink: 0; }
+  .tier .price span { font-size: 11px; font-weight: 500; color: var(--text-muted); }
+
+  /* Payment */
+  .pay-list { display: grid; gap: 10px; margin-top: 6px; }
+  .pay-tile {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 16px; border: 1.5px solid var(--border); border-radius: var(--radius-md);
+    cursor: pointer; transition: all .15s; background: var(--white);
+  }
+  .pay-tile:hover { border-color: var(--green); }
+  .pay-tile.on { border-color: var(--green); background: var(--green-faint); }
+  .pay-tile .radio {
+    width: 18px; height: 18px; border-radius: 50%;
+    border: 2px solid var(--border); flex-shrink: 0; position: relative;
+    transition: border-color .15s;
+  }
+  .pay-tile.on .radio { border-color: var(--green); }
+  .pay-tile.on .radio::after { content:''; position: absolute; inset: 3px; border-radius: 50%; background: var(--green); }
+  .pay-tile .ic {
+    width: 42px; height: 32px; border-radius: 6px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 11px;
+  }
+  .pay-tile .info { flex: 1; }
+  .pay-tile .info .t { font-size: 13.5px; font-weight: 700; color: var(--text-high); }
+  .pay-tile .info .s { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
+
+  .card-form { display: none; padding: 14px 0 0; }
+  .pay-tile.on + .card-form { display: block; }
+
+  .ep-icon { background: linear-gradient(135deg, #00a651, #009245); color: #fff; }
+  .jc-icon { background: linear-gradient(135deg, #ef3e42, #c8232c); color: #fff; }
+  .cc-icon { background: linear-gradient(135deg, #1a1f71, #142158); color: #fff; }
+  .bk-icon { background: var(--green); color: #fff; }
+
+  /* Property card (sticky right) */
+  .prop-card-sum {
+    position: sticky; top: 88px;
+    background: var(--white); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 22px; box-shadow: var(--shadow-md);
+  }
+  .prop-head { display: flex; gap: 14px; padding-bottom: 18px; border-bottom: 1px solid var(--border-faint); }
+  .prop-img {
+    width: 110px; height: 90px; border-radius: var(--radius-md); flex-shrink: 0;
+    background-size: cover; background-position: center;
+  }
+  .prop-meta .type { font-size: 11.5px; color: var(--text-muted); }
+  .prop-meta .name { font-size: 14px; font-weight: 700; color: var(--text-high); margin: 2px 0 4px; line-height: 1.3; }
+  .prop-meta .rev { font-size: 12px; color: var(--text-muted); }
+  .prop-meta .rev .star { color: var(--text-high); }
+  .prop-meta .px  { font-size: 16px; font-weight: 800; color: var(--green); margin-top: 6px; }
+  .prop-meta .px span { font-size: 11px; color: var(--text-muted); font-weight: 400; }
+
+  .summary { padding: 18px 0; border-bottom: 1px solid var(--border-faint); }
+  .summary .r { display: flex; justify-content: space-between; padding: 5px 0; font-size: 13px; color: var(--text-mid); }
+  .summary .r .v { color: var(--text-high); }
+  .total-row { display: flex; justify-content: space-between; padding-top: 14px; font-weight: 800; font-size: 16px; color: var(--green); }
+  .pay-note { font-size: 11.5px; color: var(--text-faint); margin-top: 10px; }
+
+  .promo-row { display: flex; gap: 8px; margin: 14px 0 6px; }
+  .promo-row input { flex: 1; }
+  .promo-row button { flex-shrink: 0; }
+
+  .secure-foot { display: flex; align-items: center; gap: 7px; margin-top: 16px; font-size: 11.5px; color: var(--text-muted); }
+  .secure-foot svg { color: var(--green); }
+
+  .modal-back {
+    position: fixed; inset: 0; background: rgba(17,24,39,.55); z-index: 200;
+    display: none; align-items: center; justify-content: center; padding: 24px;
+  }
+  .modal-back.on { display: flex; }
+  .modal {
+    width: 100%; max-width: 460px; background: var(--white);
+    border-radius: var(--radius-lg); padding: 32px; text-align: center;
+    animation: pop .25s ease;
+  }
+  @keyframes pop { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: scale(1); } }
+  .modal .succ {
+    width: 64px; height: 64px; border-radius: 50%; background: var(--green-faint);
+    display:flex; align-items:center; justify-content:center;
+    margin: 0 auto 14px; color: var(--green);
+  }
+  .modal h3 { font-size: 20px; font-weight: 800; margin-bottom: 6px; }
+  .modal p  { font-size: 13.5px; color: var(--text-muted); margin-bottom: 18px; }
+  .modal .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+</style>
+</head>
+<body>
+
+<div id="pp-header" data-active="explore"></div>
+
+<div class="co-shell">
+  <div class="co-head">
+    <a class="back-btn" href="javascript:history.back()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+    </a>
+    <h1 id="pageTitle">Schedule a site visit</h1>
+  </div>
+
+  <div class="co-grid">
+    <!-- LEFT -->
+    <div>
+      <!-- Visit summary -->
+      <section class="co-section">
+        <h2>Visit details</h2>
+        <div class="info-row">
+          <div><div class="lbl">Preferred date</div><div class="val" id="dateVal">Sat, Jun 14, 2026</div></div>
+          <a href="javascript:void(0)" onclick="PP.toast('Pick another date')">Edit</a>
+        </div>
+        <div class="info-row">
+          <div><div class="lbl">Preferred time</div><div class="val" id="timeVal">3:00 – 5:00 PM</div></div>
+          <a href="javascript:void(0)" onclick="PP.toast('Pick another slot')">Edit</a>
+        </div>
+        <div class="info-row">
+          <div><div class="lbl">Number of visitors</div><div class="val" id="visVal">2 persons</div></div>
+          <a href="javascript:void(0)" onclick="PP.toast('Adjust visitors')">Edit</a>
+        </div>
+      </section>
+
+      <!-- Your details -->
+      <section class="co-section">
+        <h2>Your details</h2>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">First name</label><input class="form-input" placeholder="Ahmed" /></div>
+          <div class="form-group"><label class="form-label">Last name</label><input class="form-input" placeholder="Khan" /></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Phone (required)</label><input class="form-input" type="tel" placeholder="03xx-xxxxxxx" /></div>
+          <div class="form-group"><label class="form-label">Email</label><input class="form-input" type="email" placeholder="you@example.com" /></div>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Message to agent (optional)</label>
+          <textarea class="form-textarea" placeholder="Hi! I'm interested in this property. Can we visit this weekend? Any negotiation possible?"></textarea>
+        </div>
+      </section>
+
+      <!-- Service tier -->
+      <section class="co-section">
+        <h2>Service level</h2>
+        <div class="tier-list">
+          <div class="tier on" onclick="pickTier(this, 0)">
+            <div class="radio"></div>
+            <div class="info">
+              <div class="t">Standard Enquiry <span class="pill" style="background:var(--text-muted);">FREE</span></div>
+              <div class="s">Agent contacts you within 4 hours. Visit gets scheduled by phone. No upfront cost.</div>
+            </div>
+            <div class="price">Free</div>
+          </div>
+          <div class="tier" onclick="pickTier(this, 500)">
+            <div class="radio"></div>
+            <div class="info">
+              <div class="t">Priority Visit <span class="pill">RECOMMENDED</span></div>
+              <div class="s">Agent contacts you within 15 minutes. Verified availability slot. Visit confirmed in writing.</div>
+            </div>
+            <div class="price">₨500</div>
+          </div>
+          <div class="tier" onclick="pickTier(this, 5000)">
+            <div class="radio"></div>
+            <div class="info">
+              <div class="t">Token Booking <span class="pill" style="background:#c79a2e;">SECURE</span></div>
+              <div class="s">Pay a refundable ₨5,000 token to take this property off-market for 48 hours while you finalize.</div>
+            </div>
+            <div class="price">₨5,000<br /><span>refundable</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Payment (hidden when tier = free) -->
+      <section class="co-section" id="paySection" style="display:none;">
+        <h2>Pay with</h2>
+        <div class="pay-list">
+          <div class="pay-tile on" onclick="pickPay(this)">
+            <div class="radio"></div>
+            <div class="ic ep-icon">EP</div>
+            <div class="info">
+              <div class="t">Easypaisa</div>
+              <div class="s">Mobile wallet · instant confirmation</div>
+            </div>
+          </div>
+          <div class="pay-tile" onclick="pickPay(this)">
+            <div class="radio"></div>
+            <div class="ic jc-icon">JC</div>
+            <div class="info">
+              <div class="t">JazzCash</div>
+              <div class="s">Mobile wallet · instant confirmation</div>
+            </div>
+          </div>
+          <div class="pay-tile" onclick="pickPay(this)">
+            <div class="radio"></div>
+            <div class="ic cc-icon">CC</div>
+            <div class="info">
+              <div class="t">Credit / debit card</div>
+              <div class="s">Visa, Mastercard, UnionPay</div>
+            </div>
+            <div class="card-form">
+              <div class="form-group"><label class="form-label">Card number</label><input class="form-input" placeholder="1234 5678 9012 3456" /></div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label">Expiry</label><input class="form-input" placeholder="MM / YY" /></div>
+                <div class="form-group"><label class="form-label">CVC</label><input class="form-input" placeholder="123" /></div>
+              </div>
+            </div>
+          </div>
+          <div class="pay-tile" onclick="pickPay(this)">
+            <div class="radio"></div>
+            <div class="ic bk-icon">IBFT</div>
+            <div class="info">
+              <div class="t">Bank transfer (IBFT)</div>
+              <div class="s">Pay via your bank app · 1-2 hr confirmation</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- RIGHT — property summary -->
+    <aside>
+      <div class="prop-card-sum" id="propSum"></div>
+    </aside>
+  </div>
+</div>
+
+<!-- Success modal -->
+<div class="modal-back" id="successModal">
+  <div class="modal">
+    <div class="succ">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    <h3 id="successTitle">Visit scheduled!</h3>
+    <p id="successText">The agent has been notified and will confirm your visit shortly.</p>
+    <div class="btn-row">
+      <a class="btn btn-outline" href="/pprealestate/dashboard.html">My enquiries</a>
+      <a class="btn btn-primary" href="/pprealestate/index.html">Browse more</a>
+    </div>
+  </div>
+</div>
+
+<script src="/pprealestate/assets/pp.js"></script>
+<script>
+const id = Number(PP.qs('id')) || 1;
+const action = PP.qs('action') || 'visit';
+const l = PP.byId(id) || PP.listings[0];
+
+document.getElementById('pageTitle').textContent = action === 'message' ? 'Contact agent' : 'Schedule a site visit';
+
+document.getElementById('propSum').innerHTML = `
+  <div class="prop-head">
+    <div class="prop-img" style="background-image:url('${l.images[0]}')"></div>
+    <div class="prop-meta">
+      <div class="type">${l.type} · ${l.purpose==='sale'?'For Sale':'For Rent'}</div>
+      <div class="name">${l.short}</div>
+      <div class="rev"><span class="star">★</span> ${l.rating} · ${l.reviews} reviews</div>
+      <div class="px">${l.priceLabel}<span> ${l.priceSuffix || 'for sale'}</span></div>
+    </div>
+  </div>
+  <div class="summary">
+    <div class="r"><span>Property</span><span class="v">${l.type}</span></div>
+    <div class="r"><span>Location</span><span class="v">${l.city}</span></div>
+    <div class="r"><span>Size</span><span class="v">${l.sizeText}</span></div>
+    <div class="r"><span>Bedrooms</span><span class="v">${l.bedrooms || '—'}</span></div>
+    <div class="r"><span>Agent</span><span class="v">${l.agent.name}</span></div>
+  </div>
+  <div class="summary" style="border-bottom:0;">
+    <div class="r"><span>Service tier</span><span class="v" id="sumTier">Standard Enquiry</span></div>
+    <div class="r"><span>Service fee</span><span class="v" id="sumFee">Free</span></div>
+    <div class="promo-row">
+      <input class="form-input" placeholder="Promo code" />
+      <button class="btn btn-outline" onclick="PP.toast('Code applied — ₨100 off')">Apply</button>
+    </div>
+  </div>
+  <div class="total-row"><span>You'll pay</span><span id="sumTotal">Free</span></div>
+  <button class="btn btn-primary btn-block btn-lg" style="margin-top:14px;" onclick="confirmEnquiry()">${action === 'message' ? 'Send enquiry' : 'Confirm visit'}</button>
+  <div class="secure-foot">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    Secured by 256-bit SSL · CNIC verified agent
+  </div>
+`;
+
+let currentTier = 0;
+function pickTier(el, cost){
+  document.querySelectorAll('.tier').forEach(t => t.classList.remove('on'));
+  el.classList.add('on');
+  currentTier = cost;
+  const name = el.querySelector('.t').firstChild.textContent.trim();
+  document.getElementById('sumTier').textContent = name;
+  document.getElementById('sumFee').textContent  = cost === 0 ? 'Free' : '₨' + cost.toLocaleString('en-PK');
+  document.getElementById('sumTotal').textContent= cost === 0 ? 'Free' : '₨' + cost.toLocaleString('en-PK');
+  document.getElementById('paySection').style.display = cost > 0 ? 'block' : 'none';
+}
+
+function pickPay(el){
+  document.querySelectorAll('.pay-tile').forEach(t => t.classList.remove('on'));
+  el.classList.add('on');
+}
+
+function confirmEnquiry(){
+  const free = currentTier === 0;
+  document.getElementById('successTitle').textContent =
+    free ? 'Enquiry sent!' :
+    currentTier === 500 ? 'Priority visit booked!' :
+    'Token paid — property reserved for 48 hrs!';
+  document.getElementById('successText').textContent =
+    free ? 'The agent has been notified and will reach out within 4 hours.'
+         : 'Payment received. Your visit is locked in. Agent will call shortly to confirm.';
+  document.getElementById('successModal').classList.add('on');
+}
+</script>
+</body>
+</html>

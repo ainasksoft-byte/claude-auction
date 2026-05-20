@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PakistanProperty — Post Your Property Ad</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/pprealestate/assets/pp.css" />
+<style>
+  .add-shell { max-width: 960px; margin: 0 auto; padding: 90px 24px 60px; }
+  .add-head { margin-bottom: 22px; }
+  .add-head h1 { font-size: 26px; font-weight: 800; }
+  .add-head p  { font-size: 14px; color: var(--text-muted); margin-top: 4px; }
+
+  .stepper { display: flex; align-items: center; gap: 8px; margin: 18px 0 28px; flex-wrap: wrap; }
+  .step { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 50px;
+          background: var(--white); border: 1px solid var(--border); font-size: 12.5px; font-weight: 600; color: var(--text-muted); }
+  .step .n { width: 22px; height: 22px; border-radius: 50%; background: var(--bg); display:flex; align-items:center; justify-content:center; font-size: 11px; font-weight: 800; color: var(--text-muted); }
+  .step.done .n { background: var(--green); color: #fff; }
+  .step.active { border-color: var(--green); color: var(--green); background: var(--green-faint); }
+  .step.active .n { background: var(--green); color: #fff; }
+  .step-arrow { color: var(--text-faint); }
+
+  .section { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 18px; }
+  .section h2 { font-size: 17px; font-weight: 800; margin-bottom: 4px; }
+  .section .desc { font-size: 13px; color: var(--text-muted); margin-bottom: 18px; }
+
+  /* Purpose toggle */
+  .purpose-toggle { display: flex; background: var(--bg); border-radius: var(--radius-sm); padding: 3px; max-width: 320px; margin-bottom: 22px; }
+  .purpose-toggle button { flex: 1; padding: 10px; border-radius: 6px; font-size: 13px; font-weight: 700; color: var(--text-mid); transition: all .15s; }
+  .purpose-toggle button.active { background: var(--green); color: #fff; box-shadow: var(--shadow-sm); }
+
+  /* Type tiles */
+  .type-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  @media (max-width: 700px) { .type-grid { grid-template-columns: repeat(2, 1fr); } }
+  .type-tile {
+    border: 1.5px solid var(--border); border-radius: var(--radius-md); padding: 14px 12px;
+    text-align: center; cursor: pointer; transition: all .15s; background: var(--white);
+  }
+  .type-tile:hover, .type-tile.on { border-color: var(--green); background: var(--green-faint); color: var(--green); }
+  .type-tile svg { margin: 0 auto 6px; opacity: .8; }
+  .type-tile.on svg { opacity: 1; }
+  .type-tile div { font-size: 12.5px; font-weight: 700; }
+
+  /* Counter */
+  .counter-list { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 600px) { .counter-list { grid-template-columns: 1fr; } }
+  .counter-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border-faint); }
+  .counter-row:last-child { border-bottom: 0; }
+  .c-lbl { font-size: 13.5px; font-weight: 600; }
+  .c-lbl .sub { display: block; font-size: 11.5px; color: var(--text-faint); font-weight: 400; }
+  .counter { display: flex; align-items: center; gap: 12px; }
+  .counter .step-btn {
+    width: 30px; height: 30px; border-radius: 50%;
+    border: 1.5px solid var(--border); color: var(--text-mid);
+    font-size: 16px; font-weight: 600; transition: all .15s;
+  }
+  .counter .step-btn:hover { border-color: var(--green); color: var(--green); }
+  .counter .val { font-size: 14px; font-weight: 700; min-width: 18px; text-align: center; }
+
+  /* Features */
+  .amen-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  @media (max-width: 700px) { .amen-grid { grid-template-columns: repeat(2, 1fr); } }
+  .amen {
+    display:flex; align-items:center; gap: 8px;
+    padding: 10px 12px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+    font-size: 12.5px; font-weight: 600; color: var(--text-mid); cursor: pointer;
+    transition: all .15s; user-select: none;
+  }
+  .amen:hover, .amen.on { border-color: var(--green); color: var(--green); background: var(--green-faint); }
+
+  /* Photo upload */
+  .upload-zone {
+    border: 2px dashed var(--border); border-radius: var(--radius-md);
+    padding: 30px; text-align: center; transition: border-color .15s;
+    cursor: pointer; background: var(--bg);
+  }
+  .upload-zone:hover { border-color: var(--green); background: var(--green-faint); }
+  .upload-zone svg { color: var(--green); margin-bottom: 10px; }
+  .upload-zone .t { font-size: 14px; font-weight: 700; color: var(--text-high); }
+  .upload-zone .s { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+  .photo-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 14px; }
+  @media (max-width: 700px) { .photo-grid { grid-template-columns: repeat(2, 1fr); } }
+  .photo-slot {
+    aspect-ratio: 4/3; border-radius: var(--radius-sm); overflow: hidden; position: relative;
+    background-size: cover; background-position: center;
+    border: 1px solid var(--border);
+  }
+  .photo-slot.cover::before {
+    content: 'Cover'; position: absolute; top: 6px; left: 6px;
+    background: var(--green); color: #fff; padding: 2px 7px; border-radius: 4px;
+    font-size: 10px; font-weight: 700;
+  }
+  .photo-rm {
+    position: absolute; top: 6px; right: 6px; width: 24px; height: 24px;
+    border-radius: 50%; background: rgba(17,24,39,.8); color: #fff;
+    display:flex; align-items:center; justify-content:center; font-size: 14px; font-weight: 700;
+    cursor: pointer;
+  }
+
+  /* Price */
+  .price-input-wrap { position: relative; max-width: 320px; }
+  .price-input-wrap .px { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 18px; font-weight: 700; color: var(--text-muted); }
+  .price-input-wrap input {
+    width: 100%; padding: 14px 60px 14px 40px;
+    border: 1.5px solid var(--border); border-radius: var(--radius-md);
+    font-size: 22px; font-weight: 800; color: var(--text-high); outline: none;
+  }
+  .price-input-wrap input:focus { border-color: var(--green); }
+  .price-input-wrap .sx { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); font-size: 12px; color: var(--text-muted); }
+
+  /* Plan selector */
+  .plan-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 8px; }
+  @media (max-width: 800px) { .plan-grid { grid-template-columns: 1fr; } }
+  .plan {
+    border: 1.5px solid var(--border); border-radius: var(--radius-md);
+    padding: 16px; cursor: pointer; transition: all .15s; position: relative;
+  }
+  .plan:hover { border-color: var(--green); }
+  .plan.on { border-color: var(--green); background: var(--green-faint); }
+  .plan .t { font-size: 14px; font-weight: 800; color: var(--text-high); margin-bottom: 4px; display:flex; align-items:center; gap:6px; }
+  .plan .badge { font-size: 9.5px; font-weight: 800; padding: 2px 7px; border-radius: 4px; background: var(--green); color: #fff; letter-spacing: .3px; }
+  .plan .p { font-size: 20px; font-weight: 800; color: var(--green); margin: 4px 0 8px; }
+  .plan .p span { font-size: 11px; font-weight: 500; color: var(--text-muted); }
+  .plan ul { list-style: none; padding: 0; }
+  .plan li { font-size: 12px; color: var(--text-mid); padding: 3px 0; display:flex; align-items:center; gap: 6px; }
+  .plan li svg { color: var(--green); flex-shrink: 0; }
+
+  .save-bar {
+    position: sticky; bottom: 0; background: var(--white); border-top: 1px solid var(--border);
+    padding: 14px 0; margin: 24px -24px -60px; padding-left: 24px; padding-right: 24px;
+    display: flex; justify-content: space-between; align-items: center;
+    box-shadow: 0 -8px 30px rgba(0,0,0,.04);
+  }
+  .save-progress { font-size: 12.5px; color: var(--text-muted); }
+  .save-progress strong { color: var(--green); }
+</style>
+</head>
+<body>
+
+<div id="pp-header" data-active="list"></div>
+
+<div class="add-shell">
+  <div class="add-head">
+    <h1>Post your property ad</h1>
+    <p>Tell buyers about your place. Free basic listing · upgrade to Featured to get 5× more leads.</p>
+  </div>
+
+  <div class="stepper">
+    <div class="step active"><div class="n">1</div>Basics</div>
+    <span class="step-arrow">›</span>
+    <div class="step"><div class="n">2</div>Location</div>
+    <span class="step-arrow">›</span>
+    <div class="step"><div class="n">3</div>Details</div>
+    <span class="step-arrow">›</span>
+    <div class="step"><div class="n">4</div>Photos</div>
+    <span class="step-arrow">›</span>
+    <div class="step"><div class="n">5</div>Pricing &amp; Plan</div>
+  </div>
+
+  <!-- Purpose + type -->
+  <section class="section">
+    <h2>What are you listing?</h2>
+    <p class="desc">Start by telling us if you're selling, renting, or running a commercial property.</p>
+
+    <div class="purpose-toggle">
+      <button class="active" onclick="setPurpose(this,'sale')">For Sale</button>
+      <button onclick="setPurpose(this,'rent')">For Rent</button>
+    </div>
+
+    <div class="type-grid" id="typeGrid">
+      <div class="type-tile on" onclick="pickType(this)">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <div>House</div>
+      </div>
+      <div class="type-tile" onclick="pickType(this)">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4"/></svg>
+        <div>Apartment</div>
+      </div>
+      <div class="type-tile" onclick="pickType(this)">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 21 21 21 21 7 12 3 3 7 3 21"/><line x1="9" y1="14" x2="9" y2="21"/></svg>
+        <div>Plot / Land</div>
+      </div>
+      <div class="type-tile" onclick="pickType(this)">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="1"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/></svg>
+        <div>Commercial</div>
+      </div>
+      <div class="type-tile" onclick="pickType(this)">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 22V11L12 2l10 9v11"/><path d="M2 11h20"/></svg>
+        <div>Farmhouse</div>
+      </div>
+      <div class="type-tile" onclick="pickType(this)">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4v16"/><path d="M2 8h18a2 2 0 0 1 2 2v10"/><path d="M2 17h20"/></svg>
+        <div>Private Room</div>
+      </div>
+      <div class="type-tile" onclick="pickType(this)">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 22V6l5-4 5 4 5-4 5 4v16"/><path d="M10 22v-5h4v5"/></svg>
+        <div>Heritage Haveli</div>
+      </div>
+      <div class="type-tile" onclick="pickType(this)">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3l4 8 5-5 5 15H2L8 3z"/></svg>
+        <div>Hill Cottage</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Basics -->
+  <section class="section">
+    <h2>Tell us about your property</h2>
+    <p class="desc">Clear, specific titles get up to 3× more views.</p>
+
+    <div class="form-group">
+      <label class="form-label">Listing title</label>
+      <input class="form-input" placeholder="e.g. 5-Marla Modern House — DHA Phase 2, Islamabad" />
+      <div class="form-hint">Up to 70 characters. Include city, society, and key feature.</div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Description</label>
+      <textarea class="form-textarea" placeholder="Describe the property — the neighbourhood, what's special, nearby schools or markets, recent renovations…"></textarea>
+    </div>
+  </section>
+
+  <!-- Location -->
+  <section class="section">
+    <h2>Location</h2>
+    <p class="desc">Help buyers find your property. Exact address shown only after enquiry.</p>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">City</label>
+        <select class="form-select">
+          <option>Islamabad</option><option>Rawalpindi</option><option>Lahore</option>
+          <option>Karachi</option><option>Faisalabad</option><option>Multan</option>
+          <option>Peshawar</option><option>Murree</option><option>Nathiagali</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Area / Society</label>
+        <input class="form-input" placeholder="e.g. DHA Phase 2, F-10 Markaz, Bahria Town" />
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Street / Sector / Block</label>
+      <input class="form-input" placeholder="e.g. Sector E, Street 12, House 45" />
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Map location</label>
+      <div style="border: 1.5px solid var(--border); border-radius: var(--radius-md); padding: 18px; background: var(--bg); display: flex; align-items: center; gap: 12px;">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        <div style="flex:1;">
+          <div style="font-size: 13.5px; font-weight: 700;">Drop a pin on the map</div>
+          <div style="font-size: 12px; color: var(--text-muted);">Drag the marker to your property's exact location.</div>
+        </div>
+        <button type="button" class="btn btn-outline" onclick="PP.toast('Map opening…')">Open map</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Details -->
+  <section class="section">
+    <h2>Property details</h2>
+    <p class="desc">Beds, baths, area &amp; year built.</p>
+
+    <div class="counter-list">
+      <div class="counter-row">
+        <div class="c-lbl">Bedrooms<span class="sub">Number of bedrooms</span></div>
+        <div class="counter">
+          <button class="step-btn" onclick="cnt(this,-1)">−</button>
+          <span class="val">4</span>
+          <button class="step-btn" onclick="cnt(this,1)">+</button>
+        </div>
+      </div>
+      <div class="counter-row">
+        <div class="c-lbl">Bathrooms<span class="sub">Attached + common</span></div>
+        <div class="counter">
+          <button class="step-btn" onclick="cnt(this,-1)">−</button>
+          <span class="val">3</span>
+          <button class="step-btn" onclick="cnt(this,1)">+</button>
+        </div>
+      </div>
+      <div class="counter-row">
+        <div class="c-lbl">Car parking<span class="sub">Covered + open</span></div>
+        <div class="counter">
+          <button class="step-btn" onclick="cnt(this,-1)">−</button>
+          <span class="val">2</span>
+          <button class="step-btn" onclick="cnt(this,1)">+</button>
+        </div>
+      </div>
+      <div class="counter-row">
+        <div class="c-lbl">Floors<span class="sub">Number of storeys</span></div>
+        <div class="counter">
+          <button class="step-btn" onclick="cnt(this,-1)">−</button>
+          <span class="val">2</span>
+          <button class="step-btn" onclick="cnt(this,1)">+</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-row" style="margin-top: 16px;">
+      <div class="form-group">
+        <label class="form-label">Plot size</label>
+        <input class="form-input" placeholder="e.g. 5 Marla, 1 Kanal, 10 Marla" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Covered area (sqft)</label>
+        <input class="form-input" type="number" placeholder="e.g. 1100" />
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Year built</label>
+        <input class="form-input" type="number" placeholder="e.g. 2022" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Possession status</label>
+        <select class="form-select">
+          <option>Ready (vacant)</option>
+          <option>Ready (occupied — rented)</option>
+          <option>Under construction</option>
+          <option>File / token only</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="section">
+    <h2>Features &amp; amenities</h2>
+    <p class="desc">Pick everything that applies. Verified features make your ad stand out.</p>
+
+    <div class="amen-grid">
+      <div class="amen on" onclick="this.classList.toggle('on')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg> Servant Quarter</div>
+      <div class="amen on" onclick="this.classList.toggle('on')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="13 2 4 14 12 14 11 22 20 10 13 10 13 2"/></svg> Backup Generator</div>
+      <div class="amen" onclick="this.classList.toggle('on')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/></svg> Solar Panels</div>
+      <div class="amen on" onclick="this.classList.toggle('on')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 8l-7 4-7-4 7-4 7 4z"/></svg> CCTV</div>
+      <div class="amen" onclick="this.classList.toggle('on')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22V8M12 8c-3 0-5-2-5-5 3 0 5 2 5 5z"/></svg> Lawn / Garden</div>
+      <div class="amen" onclick="this.classList.toggle('on')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18"/></svg> Marble Floors</div>
+      <div class="amen on" onclick="this.classList.toggle('on')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 14c0-3 4-3 4-7 2 2 4 5 4 9 0 4-3 6-6 6s-6-2-6-6c0-2 1-3 2-4"/></svg> Sui Gas</div>
+      <div class="amen" onclick="this.classList.toggle('on')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="3" width="12" height="18" rx="1"/></svg> Lift</div>
+      <div class="amen" onclick="this.classList.toggle('on')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> 24/7 Security</div>
+      <div class="amen" onclick="this.classList.toggle('on')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 17c2-2 4 0 6 0s4-2 6 0"/></svg> Swimming Pool</div>
+      <div class="amen on" onclick="this.classList.toggle('on')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Possession Ready</div>
+      <div class="amen" onclick="this.classList.toggle('on')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 21 21 21 21 3"/></svg> Corner Property</div>
+    </div>
+  </section>
+
+  <!-- Photos -->
+  <section class="section">
+    <h2>Add photos &amp; video</h2>
+    <p class="desc">Listings with 8+ photos get 4× more leads. Add a video tour to stand out.</p>
+
+    <div class="upload-zone" onclick="PP.toast('Choose images from device')">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      <div class="t">Drag &amp; drop photos here, or click to browse</div>
+      <div class="s">JPG or PNG · up to 20 photos · 5MB each. First photo will be the cover.</div>
+    </div>
+
+    <div class="photo-grid">
+      <div class="photo-slot cover" style="background-image:url(https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=600&q=80);"><button class="photo-rm">×</button></div>
+      <div class="photo-slot" style="background-image:url(https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&q=80);"><button class="photo-rm">×</button></div>
+      <div class="photo-slot" style="background-image:url(https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=600&q=80);"><button class="photo-rm">×</button></div>
+      <div class="photo-slot" style="background-image:url(https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&q=80);"><button class="photo-rm">×</button></div>
+    </div>
+
+    <div class="form-group" style="margin-top: 18px;">
+      <label class="form-label">YouTube video tour (optional)</label>
+      <input class="form-input" placeholder="https://youtube.com/watch?v=…" />
+      <div class="form-hint">Listings with a video tour get 6× more buyer enquiries.</div>
+    </div>
+  </section>
+
+  <!-- Pricing -->
+  <section class="section">
+    <h2>Set your asking price</h2>
+    <p class="desc" id="priceDesc">Total selling price in PKR. Buyers may negotiate from here.</p>
+
+    <div class="price-input-wrap">
+      <span class="px">₨</span>
+      <input type="number" value="28000000" />
+      <span class="sx" id="priceSuf">total</span>
+    </div>
+    <div class="form-hint" style="margin-top: 8px;">Tip: properties priced within 5% of area average sell 2× faster.</div>
+
+    <div class="form-row" style="margin-top: 18px;">
+      <div class="form-group">
+        <label class="form-label">Price negotiable?</label>
+        <select class="form-select">
+          <option>Yes — negotiable</option>
+          <option>Slightly negotiable</option>
+          <option>Firm price</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Demand type</label>
+        <select class="form-select">
+          <option>Cash only</option>
+          <option>Cash or installments</option>
+          <option>Open to bank finance</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <!-- Plan -->
+  <section class="section">
+    <h2>Choose your listing plan</h2>
+    <p class="desc">Free listings work — Featured listings get up to 5× more leads.</p>
+
+    <div class="plan-grid">
+      <div class="plan on" onclick="pickPlan(this)">
+        <div class="t">Basic <span class="badge" style="background:var(--text-muted);">FREE</span></div>
+        <div class="p">Free</div>
+        <ul>
+          <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Standard search placement</li>
+          <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Up to 8 photos</li>
+          <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Active for 30 days</li>
+        </ul>
+      </div>
+      <div class="plan" onclick="pickPlan(this)">
+        <div class="t">Featured <span class="badge">POPULAR</span></div>
+        <div class="p">₨2,500 <span>/ 30 days</span></div>
+        <ul>
+          <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Top of search results</li>
+          <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Gold "Featured" badge</li>
+          <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> 20 photos + video</li>
+          <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Email blast to 5,000 buyers</li>
+        </ul>
+      </div>
+      <div class="plan" onclick="pickPlan(this)">
+        <div class="t">Hot Pick <span class="badge" style="background:#dc2626;">PREMIUM</span></div>
+        <div class="p">₨7,500 <span>/ 30 days</span></div>
+        <ul>
+          <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Always #1 in your area</li>
+          <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Red "Hot" badge</li>
+          <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Featured on homepage</li>
+          <li><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Free professional photoshoot</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <div class="save-bar">
+    <div class="save-progress">Draft saved · <strong>92% complete</strong> · 5 of 5 sections done</div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-outline" onclick="PP.toast('Saved as draft')">Save draft</button>
+      <button class="btn btn-primary btn-lg" onclick="publish()">Publish listing</button>
+    </div>
+  </div>
+</div>
+
+<script src="/pprealestate/assets/pp.js"></script>
+<script>
+function setPurpose(el, p){
+  el.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('priceDesc').textContent =
+    p === 'sale' ? 'Total selling price in PKR. Buyers may negotiate from here.'
+                 : 'Monthly rent in PKR. Tenants may negotiate from here.';
+  document.getElementById('priceSuf').textContent = p === 'sale' ? 'total' : '/ month';
+}
+function pickType(el){
+  el.parentElement.querySelectorAll('.type-tile').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on');
+}
+function pickPlan(el){
+  el.parentElement.querySelectorAll('.plan').forEach(p=>p.classList.remove('on'));
+  el.classList.add('on');
+}
+function cnt(btn, delta){
+  const v = btn.parentElement.querySelector('.val');
+  const next = Math.max(0, parseInt(v.textContent) + delta);
+  v.textContent = next;
+}
+function publish(){
+  PP.toast('Listing published! Verifying details…');
+  setTimeout(() => location.href = '/pprealestate/dashboard.html', 1100);
+}
+</script>
+</body>
+</html>
