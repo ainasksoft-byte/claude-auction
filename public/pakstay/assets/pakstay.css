@@ -197,3 +197,112 @@ img { display: block; max-width: 100%; }
 
 /* ===== ICONS ===== */
 .icon { flex-shrink: 0; }
+
+/* ===== BACK BUTTON ===== */
+.ps-back {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 14px 8px 10px; border-radius: 50px;
+  border: 1.5px solid var(--border); background: var(--white);
+  color: var(--text-mid); font-size: 13px; font-weight: 600;
+  transition: all .15s; cursor: pointer;
+}
+.ps-back:hover { border-color: var(--green); color: var(--green); background: var(--green-faint); }
+.ps-back svg { transition: transform .15s; }
+.ps-back:hover svg { transform: translateX(-2px); }
+
+/* ===== AUTH MODAL ===== */
+.ps-modal-back {
+  position: fixed; inset: 0; background: rgba(17,24,39,.55);
+  z-index: 1000; display: none; align-items: center; justify-content: center;
+  padding: 20px; backdrop-filter: blur(2px);
+}
+.ps-modal-back.on { display: flex; }
+.ps-modal {
+  width: 100%; max-width: 440px; max-height: 92vh; overflow-y: auto;
+  background: var(--white); border-radius: var(--radius-lg);
+  padding: 32px 30px 28px; position: relative;
+  box-shadow: var(--shadow-lg);
+  animation: psPop .22s ease;
+}
+@keyframes psPop { from { opacity: 0; transform: scale(.94) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+.ps-modal-close {
+  position: absolute; top: 14px; right: 14px;
+  width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-mid); transition: background .15s; font-size: 18px;
+}
+.ps-modal-close:hover { background: var(--bg); color: var(--text-high); }
+.ps-modal-title { font-size: 20px; font-weight: 800; margin-bottom: 4px; }
+.ps-modal-sub   { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; }
+.ps-modal .pwd-wrap { position: relative; }
+.ps-modal .pwd-toggle { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
+.ps-modal-foot { font-size: 13px; color: var(--text-muted); margin-top: 16px; text-align: center; }
+.ps-modal-foot a { color: var(--green); font-weight: 700; cursor: pointer; }
+.ps-modal-foot a:hover { text-decoration: underline; }
+.ps-modal .check-row { display: flex; align-items: center; justify-content: space-between; margin: -2px 0 14px; font-size: 12.5px; color: var(--text-muted); }
+.ps-modal .check-row .cb { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+.ps-modal .check-row .cb input { width: 14px; height: 14px; accent-color: var(--green); }
+.ps-modal .check-row a { color: var(--green); font-weight: 600; cursor: pointer; }
+
+/* Signup role chooser inside modal */
+.ps-role-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ps-role-card {
+  border: 1.5px solid var(--border); border-radius: var(--radius-md);
+  padding: 22px 16px; text-align: center; cursor: pointer;
+  transition: all .15s; background: var(--white);
+}
+.ps-role-card:hover { border-color: var(--green); background: var(--green-faint); color: var(--green); }
+.ps-role-card .ic {
+  width: 48px; height: 48px; border-radius: 50%;
+  background: var(--green-faint); color: var(--green);
+  display: flex; align-items: center; justify-content: center; margin: 0 auto 10px;
+  transition: all .15s;
+}
+.ps-role-card:hover .ic { background: var(--green); color: #fff; }
+.ps-role-card .t { font-size: 14px; font-weight: 800; color: var(--text-high); margin-bottom: 2px; }
+.ps-role-card .s { font-size: 11.5px; color: var(--text-muted); }
+
+/* ===== MAP — AVATAR PINS &amp; HOVER CARD ===== */
+.ps-avatar-pin-wrap { background: transparent; border: 0; }
+.ps-avatar-pin {
+  width: 46px; height: 46px; border-radius: 50%;
+  background-size: cover; background-position: center;
+  border: 3px solid #fff; box-shadow: 0 3px 12px rgba(0,0,0,.28);
+  position: relative; transition: transform .18s, border-color .18s;
+  cursor: pointer;
+}
+.ps-avatar-pin::after {
+  content: attr(data-price);
+  position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%);
+  background: var(--green); color: #fff; padding: 2px 8px;
+  border-radius: 10px; font-size: 10.5px; font-weight: 800;
+  white-space: nowrap; border: 2px solid #fff;
+  box-shadow: var(--shadow-sm);
+}
+.ps-avatar-pin:hover, .ps-avatar-pin.on {
+  transform: scale(1.12); border-color: var(--green);
+  z-index: 1000;
+}
+.ps-avatar-pin.on::after { background: var(--text-high); }
+
+/* Leaflet hover tooltip card */
+.leaflet-tooltip.ps-map-tip {
+  background: transparent; border: 0; box-shadow: none; padding: 0;
+  opacity: 1 !important;
+}
+.leaflet-tooltip.ps-map-tip::before { display: none; }
+.ps-map-card {
+  width: 240px; background: var(--white); border: 1px solid var(--border);
+  border-radius: var(--radius-md); overflow: hidden; box-shadow: var(--shadow-lg);
+  font-family: 'Inter', sans-serif;
+}
+.ps-map-card .img { height: 110px; background-size: cover; background-position: center; }
+.ps-map-card .body { padding: 10px 12px 12px; }
+.ps-map-card .t { font-size: 13px; font-weight: 800; color: var(--text-high); margin-bottom: 2px; line-height: 1.3; }
+.ps-map-card .l { font-size: 11.5px; color: var(--text-muted); margin-bottom: 6px; }
+.ps-map-card .f { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--text-mid); }
+.ps-map-card .f .p { color: var(--green); font-weight: 800; font-size: 14px; }
+.ps-map-card .f .p span { color: var(--text-muted); font-weight: 400; font-size: 11px; }
+.ps-map-card .f .r { color: var(--text-high); font-weight: 700; }
+.ps-map-card .badges { display: flex; gap: 4px; margin-top: 8px; flex-wrap: wrap; }
+.ps-map-card .badges span { font-size: 9.5px; font-weight: 700; padding: 2px 7px; border-radius: 4px; background: var(--green-faint); color: var(--green); border: 1px solid rgba(26,107,42,.18); }

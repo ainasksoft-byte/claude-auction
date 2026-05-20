@@ -194,7 +194,7 @@ window.PS = {
     this._t = setTimeout(()=>el.classList.remove('on'), 2400);
   },
 
-  // build a custom Leaflet price pin
+  // legacy price pin (kept for listing.html detail map)
   pricePin(label, selected=false){
     return L.divIcon({
       className: 'ps-pin-wrap',
@@ -202,6 +202,70 @@ window.PS = {
       iconSize: [60, 28],
       iconAnchor: [30, 14]
     });
+  },
+
+  // avatar pin with property thumbnail + small price chip
+  avatarPin(listing, selected=false){
+    const priceLabel = listing.price >= 1000
+      ? '₨' + Math.round(listing.price/1000) + 'K'
+      : '₨' + listing.price;
+    return L.divIcon({
+      className: 'ps-avatar-pin-wrap',
+      html: `<div class="ps-avatar-pin ${selected?'on':''}"
+                  style="background-image:url('${listing.images[0]}')"
+                  data-price="${priceLabel}"></div>`,
+      iconSize: [46, 60],
+      iconAnchor: [23, 23]
+    });
+  },
+
+  // hover card HTML shown via Leaflet tooltip
+  hoverCardHTML(l){
+    const badgeMap = { 'CNIC Verified':'CNIC','PP Inspected':'Inspected','Superhost':'Superhost','New Listing':'New' };
+    const badges = (l.badges||[]).slice(0,3).map(b => `<span>${badgeMap[b]||b}</span>`).join('');
+    return `
+      <div class="ps-map-card">
+        <div class="img" style="background-image:url('${l.images[0]}')"></div>
+        <div class="body">
+          <div class="t">${l.short}</div>
+          <div class="l">${l.loc}</div>
+          <div class="f">
+            <span class="p">${this.fmtPrice(l.price)} <span>/ night</span></span>
+            <span class="r">★ ${l.rating} (${l.reviews})</span>
+          </div>
+          ${badges ? `<div class="badges">${badges}</div>` : ''}
+        </div>
+      </div>`;
+  },
+
+  // ── Auth modals ─────────────────────────────────────────
+  openLogin(){
+    document.getElementById('psSignupModal')?.classList.remove('on');
+    document.getElementById('psLoginModal')?.classList.add('on');
+  },
+  openSignup(){
+    document.getElementById('psLoginModal')?.classList.remove('on');
+    document.getElementById('psSignupModal')?.classList.add('on');
+  },
+  closeAuth(){
+    document.getElementById('psLoginModal')?.classList.remove('on');
+    document.getElementById('psSignupModal')?.classList.remove('on');
+  },
+  togglePwdModal(btn){
+    const i = btn.parentElement.querySelector('input');
+    i.type = i.type === 'password' ? 'text' : 'password';
+  },
+  submitLogin(e){
+    e.preventDefault();
+    PS.closeAuth();
+    PS.toast('Welcome back!');
+    return false;
+  },
+  submitGuestSignup(e){
+    e.preventDefault();
+    PS.closeAuth();
+    PS.toast('Account created! Welcome to Pak Stay.');
+    return false;
   }
 };
 
@@ -238,13 +302,157 @@ window.PS.headerHTML = function(active){
       <a class="h-link ${a('explore')}" href="/pakstay/index.html">Explore</a>
       <a class="h-link ${a('list')}" href="/pakstay/add-listing.html">List Property</a>
       <a class="h-btn-outline" href="/pakstay/dashboard.html">Host Dashboard</a>
-      <a class="h-btn-solid" href="/pakstay/login.html">Sign In</a>
+      <button class="h-link" onclick="PS.openLogin()">Sign In</button>
+      <button class="h-btn-solid" onclick="PS.openSignup()">Sign Up</button>
       <div class="avatar" onclick="location.href='/pakstay/dashboard.html'">R</div>
     </div>
   </header>`;
 };
 
+window.PS.authModalsHTML = function(){
+  return `
+  <!-- LOGIN MODAL -->
+  <div class="ps-modal-back" id="psLoginModal" onclick="if(event.target===this) PS.closeAuth()">
+    <div class="ps-modal" role="dialog" aria-label="Sign in">
+      <button class="ps-modal-close" onclick="PS.closeAuth()" aria-label="Close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <div class="auth-logo" style="margin-bottom:16px;">
+        <div class="logo-mark">PS</div>
+        <div class="logo-stack">
+          <span class="logo-name">Pak Stay</span>
+          <span class="logo-by">by PakistanProperty.com</span>
+        </div>
+      </div>
+      <h2 class="ps-modal-title">Welcome back</h2>
+      <p class="ps-modal-sub">Sign in to manage bookings and message hosts.</p>
+      <form onsubmit="return PS.submitLogin(event)">
+        <div class="form-group">
+          <label class="form-label">Phone or email</label>
+          <input class="form-input" type="text" placeholder="03xx-xxxxxxx or you@example.com" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <div class="pwd-wrap">
+            <input class="form-input" type="password" placeholder="••••••••" required style="padding-right:38px;" />
+            <button type="button" class="pwd-toggle" onclick="PS.togglePwdModal(this)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="check-row">
+          <label class="cb"><input type="checkbox" /> Remember me</label>
+          <a onclick="PS.toast('Reset link sent')">Forgot password?</a>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block btn-lg">Sign in</button>
+      </form>
+      <div class="auth-divider">or continue with</div>
+      <div class="social-row">
+        <button class="social-btn" onclick="PS.toast('Signing in with Google…')">
+          <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20H42v-.05H24v8h11.3c-1.7 4.5-6 7.6-11.3 7.6-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.1 6.1 29.3 4 24 4 13 4 4 13 4 24s9 20 20 20c11.5 0 19.5-8.3 19.5-20 0-1.4-.2-2.7-.4-4z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16 19 13 24 13c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.1 6.1 29.3 4 24 4 16.4 4 9.8 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 10-2 13.6-5.2L31 33.3c-2 1.4-4.4 2.2-7 2.2-5.2 0-9.6-3.3-11.2-7.9l-6.6 5.1C9.8 39.7 16.4 44 24 44z"/><path fill="#1976D2" d="M43.6 20H42v-.05H24v8h11.3c-.8 2.2-2.2 4.1-4.3 5.4l6.6 5.1C40.6 35 44 30 44 24c0-1.4-.2-2.7-.4-4z"/></svg>
+          Google
+        </button>
+        <button class="social-btn" onclick="PS.toast('Signing in with Facebook…')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07c0 6 4.39 10.97 10.12 11.88V15.56h-3.05v-3.49h3.05V9.41c0-3.02 1.8-4.68 4.53-4.68 1.31 0 2.69.23 2.69.23v2.97h-1.52c-1.49 0-1.95.93-1.95 1.88v2.26h3.33l-.53 3.49h-2.8v8.39C19.61 23.04 24 18.07 24 12.07z"/></svg>
+          Facebook
+        </button>
+      </div>
+      <div class="ps-modal-foot">New to Pak Stay? <a onclick="PS.openSignup()">Create an account</a></div>
+    </div>
+  </div>
+
+  <!-- SIGNUP MODAL (role chooser + guest form) -->
+  <div class="ps-modal-back" id="psSignupModal" onclick="if(event.target===this) PS.closeAuth()">
+    <div class="ps-modal" role="dialog" aria-label="Create account">
+      <button class="ps-modal-close" onclick="PS.closeAuth()" aria-label="Close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+
+      <!-- Step 1 — chooser -->
+      <div id="psSignupChooser">
+        <div class="auth-logo" style="margin-bottom:16px;">
+          <div class="logo-mark">PS</div>
+          <div class="logo-stack">
+            <span class="logo-name">Pak Stay</span>
+            <span class="logo-by">by PakistanProperty.com</span>
+          </div>
+        </div>
+        <h2 class="ps-modal-title">Join Pak Stay</h2>
+        <p class="ps-modal-sub">What would you like to do first?</p>
+
+        <div class="ps-role-grid">
+          <div class="ps-role-card" onclick="document.getElementById('psSignupChooser').style.display='none';document.getElementById('psSignupGuestForm').style.display='block';">
+            <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+            <div class="t">Book a stay</div>
+            <div class="s">I'm travelling</div>
+          </div>
+          <div class="ps-role-card" onclick="location.href='/pakstay/signup.html'">
+            <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+            <div class="t">Host my place</div>
+            <div class="s">I have a property</div>
+          </div>
+        </div>
+
+        <div class="ps-modal-foot">Already have an account? <a onclick="PS.openLogin()">Sign in</a></div>
+      </div>
+
+      <!-- Step 2 — guest signup form -->
+      <div id="psSignupGuestForm" style="display:none;">
+        <button class="ps-back" style="margin-bottom:14px;" onclick="document.getElementById('psSignupGuestForm').style.display='none';document.getElementById('psSignupChooser').style.display='block';">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+          Back
+        </button>
+        <h2 class="ps-modal-title">Create a guest account</h2>
+        <p class="ps-modal-sub">Book verified stays across Pakistan in seconds.</p>
+
+        <form onsubmit="return PS.submitGuestSignup(event)">
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">First name</label><input class="form-input" placeholder="Ahmed" required /></div>
+            <div class="form-group"><label class="form-label">Last name</label><input class="form-input" placeholder="Khan" required /></div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Phone</label>
+            <input class="form-input" type="tel" placeholder="03xx-xxxxxxx" required />
+            <div class="form-hint">We'll send a free OTP to verify.</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input class="form-input" type="email" placeholder="you@example.com" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <div class="pwd-wrap">
+              <input class="form-input" type="password" placeholder="At least 8 characters" required style="padding-right:38px;" />
+              <button type="button" class="pwd-toggle" onclick="PS.togglePwdModal(this)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+          </div>
+          <div style="font-size:11.5px;color:var(--text-muted);margin:-4px 0 12px;line-height:1.5;">
+            By creating an account you agree to our <a style="color:var(--green);font-weight:600;">Terms</a> and <a style="color:var(--green);font-weight:600;">Privacy Policy</a>.
+          </div>
+          <button type="submit" class="btn btn-primary btn-block btn-lg">Create account</button>
+        </form>
+
+        <div class="ps-modal-foot">Want to host instead? <a onclick="location.href='/pakstay/signup.html'">Sign up as a host →</a></div>
+      </div>
+    </div>
+  </div>`;
+};
+
 document.addEventListener('DOMContentLoaded', () => {
   const slot = document.getElementById('ps-header');
   if (slot) slot.outerHTML = window.PS.headerHTML(slot.getAttribute('data-active') || '');
+
+  // Inject auth modals at end of body (skip on the host signup page itself)
+  if (!document.body.hasAttribute('data-no-auth-modals')) {
+    const wrap = document.createElement('div');
+    wrap.innerHTML = window.PS.authModalsHTML();
+    document.body.appendChild(wrap);
+  }
+
+  // ESC closes modals
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') window.PS.closeAuth();
+  });
 });

@@ -425,9 +425,9 @@
           <option>Price: High to Low</option>
           <option>Top Rated</option>
         </select>
-        <button class="map-btn" id="mapBtn" onclick="toggleMap()">
+        <button class="map-btn on" id="mapBtn" onclick="toggleMap()">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l6-3 6 3 6-3v13l-6 3-6-3-6 3V7z"/><line x1="9" y1="4" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="20"/></svg>
-          Show Map
+          Hide Map
         </button>
       </div>
     </div>
@@ -452,7 +452,7 @@
         </div>
       </div>
 
-      <div class="map-col" id="mapCol">
+      <div class="map-col on" id="mapCol">
         <div id="leafletMap"></div>
       </div>
     </div>
@@ -549,52 +549,54 @@
     setTimeout(() => el.remove(), 180);
   }
 
-  // ── Map (real Leaflet + OpenStreetMap)
+  // ── Map (real Leaflet + OpenStreetMap, avatar pins + hover detail card)
   let map = null, markers = [];
-  let mapOn = false;
+  let mapOn = true; // visible by default
 
   function initMap(){
     if (map) return;
     map = L.map('leafletMap', { zoomControl: true, scrollWheelZoom: true })
-           .setView([33.6995, 73.0363], 6); // Pakistan-wide
+           .setView([33.6995, 73.0363], 6);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
     PS.listings.forEach((l, i) => {
-      const label = '₨' + (l.price >= 1000 ? Math.round(l.price/1000) + 'K' : l.price);
-      const m = L.marker([l.lat, l.lng], { icon: PS.pricePin(label, i===0) }).addTo(map);
+      const m = L.marker([l.lat, l.lng], { icon: PS.avatarPin(l, i===0), riseOnHover: true }).addTo(map);
       m._psListing = l;
-      m.bindPopup(`
-        <div class="pp-img"><img src="${l.images[0]}" alt="${l.short}" /></div>
-        <div class="pp-body">
-          <div class="pp-title">${l.short}</div>
-          <div class="pp-loc">${l.loc}</div>
-          <div class="pp-foot">
-            <div class="pp-price">${PS.fmtPrice(l.price)} <span>/ night</span></div>
-            <button class="pp-book" onclick="location.href='/pakstay/checkout.html?id=${l.id}'">Book Now</button>
-          </div>
-        </div>
-      `);
+
+      // hover-based detail card via tooltip
+      m.bindTooltip(PS.hoverCardHTML(l), {
+        className: 'ps-map-tip',
+        direction: 'top',
+        offset: [0, -22],
+        opacity: 1,
+        sticky: false
+      });
+
+      // click → select card + open detail
       m.on('click', () => selectListing(l.id));
+      m.on('dblclick', () => location.href = `/pakstay/listing.html?id=${l.id}`);
       markers.push(m);
     });
 
-    // Fit to all pins
     const group = L.featureGroup(markers);
-    map.fitBounds(group.getBounds().pad(0.15));
+    map.fitBounds(group.getBounds().pad(0.18));
   }
 
   function selectListing(id){
     document.querySelectorAll('.card').forEach(c => c.classList.toggle('selected', Number(c.dataset.id) === id));
+    let selected = null;
     markers.forEach(m => {
       const isOn = m._psListing.id === id;
-      const l = m._psListing;
-      const label = '₨' + (l.price >= 1000 ? Math.round(l.price/1000) + 'K' : l.price);
-      m.setIcon(PS.pricePin(label, isOn));
-      if (isOn) { m.openPopup(); map.panTo(m.getLatLng()); }
+      m.setIcon(PS.avatarPin(m._psListing, isOn));
+      if (isOn) selected = m;
     });
+    if (selected) {
+      map.panTo(selected.getLatLng(), { animate: true });
+      selected.openTooltip();
+    }
   }
 
   function toggleMap(){
@@ -605,14 +607,14 @@
     b.innerHTML = mapOn
       ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l6-3 6 3 6-3v13l-6 3-6-3-6 3V7z"/><line x1="9" y1="4" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="20"/></svg> Hide Map`
       : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l6-3 6 3 6-3v13l-6 3-6-3-6 3V7z"/><line x1="9" y1="4" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="20"/></svg> Show Map`;
-    if (mapOn) {
-      setTimeout(() => { initMap(); map.invalidateSize(); }, 120);
-    }
+    if (mapOn) setTimeout(() => { initMap(); map && map.invalidateSize(); }, 120);
   }
 
   // ── Init
   renderGrid();
   document.querySelectorAll('.sb-body').forEach(b => { b.dataset.mh = b.style.maxHeight; });
+  // map is on by default — init after Leaflet is loaded and pakstay header injected
+  setTimeout(() => { initMap(); map && map.invalidateSize(); }, 120);
 </script>
 </body>
 </html>

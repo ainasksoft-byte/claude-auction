@@ -160,6 +160,11 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script>
+  function goBack(){
+    if (document.referrer && new URL(document.referrer).origin === location.origin) history.back();
+    else location.href = '/pakstay/index.html';
+  }
+
   const id = Number(PS.qs('id')) || 1;
   const l = PS.byId(id) || PS.listings[0];
 
@@ -193,10 +198,16 @@
   document.title = `Pak Stay — ${l.short}`;
 
   document.getElementById('content').innerHTML = `
-    <div class="crumbs">
-      <a href="/pakstay/index.html">Stays</a> ›
-      <a href="/pakstay/index.html">${l.city}</a> ›
-      <span>${l.short}</span>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
+      <button class="ps-back" onclick="goBack()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        Back to stays
+      </button>
+      <div class="crumbs" style="margin:0;">
+        <a href="/pakstay/index.html">Stays</a> ›
+        <a href="/pakstay/index.html">${l.city}</a> ›
+        <span>${l.short}</span>
+      </div>
     </div>
 
     <div class="listing-head">
