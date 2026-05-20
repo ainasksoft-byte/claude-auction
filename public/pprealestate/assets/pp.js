@@ -23,6 +23,13 @@ window.PPRE_LISTINGS = [
     ],
     desc: 'Stunning brand-new 5-marla house in the heart of DHA Phase 2. Imported fittings, marble flooring, fully fitted modular kitchen, private lawn and a servant quarter. Walking distance from DHA Park and reputable schools.',
     amenities: ['Servant Qtr','Generator','Solar','CCTV','Lawn','Marble Floors','Sui Gas','Tarmac Road'],
+    nearby: [
+      { type:'school',   name:'DHA Model School',    dist:'0.4 km', lat:33.7230, lng:73.0615 },
+      { type:'mosque',   name:'Masjid-e-Ibrahim',    dist:'0.2 km', lat:33.7188, lng:73.0678 },
+      { type:'park',     name:'DHA Community Park',  dist:'0.5 km', lat:33.7248, lng:73.0698 },
+      { type:'market',   name:'DHA Main Markaz',     dist:'0.3 km', lat:33.7173, lng:73.0618 },
+      { type:'hospital', name:'OMH Hospital',        dist:'1.1 km', lat:33.7298, lng:73.0575 }
+    ],
     agent: { name: 'Asif Mehmood', agency: 'Premium Realty', joined: 'Jan 2021', rating: 4.9, listings: 47, deals: 130, phone: '0301-2345678', langs:['Urdu','English'] }
   },
   {
@@ -46,6 +53,13 @@ window.PPRE_LISTINGS = [
     ],
     desc: 'Top-floor luxury apartment in F-10 with panoramic city views. Open-plan living, modern kitchen, two master bedrooms, and a third room with attached study. Building has 24/7 security, lift and rooftop access.',
     amenities: ['Lift','24/7 Security','Gym','Rooftop','Parking','Power Backup','Intercom'],
+    nearby: [
+      { type:'market',   name:'F-10 Markaz',          dist:'0.1 km', lat:33.6988, lng:73.0228 },
+      { type:'school',   name:'Roots School F-10',    dist:'0.5 km', lat:33.6940, lng:73.0255 },
+      { type:'hospital', name:'PIMS Hospital',        dist:'1.4 km', lat:33.7095, lng:73.0185 },
+      { type:'mosque',   name:'F-10 Sector Masjid',   dist:'0.2 km', lat:33.6998, lng:73.0205 },
+      { type:'park',     name:'F-10 Margalla Park',   dist:'0.4 km', lat:33.6955, lng:73.0255 }
+    ],
     agent: { name: 'Sara Qureshi', agency: 'Capital Properties', joined: 'Mar 2022', rating: 4.8, listings: 32, deals: 88, phone: '0333-4567890', langs:['Urdu','English','Punjabi'] }
   },
   {
@@ -68,6 +82,13 @@ window.PPRE_LISTINGS = [
     ],
     desc: 'Premium corner plot in the heart of Bahria Phase 8. Park-facing, on 50ft wide road, in a developed pocket. Utilities (sui gas, electricity, water) ready. Possession available immediately.',
     amenities: ['Corner','Park Facing','Possession Ready','Wide Street','Sui Gas','Utilities Ready'],
+    nearby: [
+      { type:'school',   name:'Beaconhouse Bahria',  dist:'0.6 km', lat:33.5385, lng:73.0898 },
+      { type:'park',     name:'Bahria Theme Park',   dist:'0.8 km', lat:33.5398, lng:73.0808 },
+      { type:'market',   name:'Bahria Grocery',      dist:'0.3 km', lat:33.5355, lng:73.0842 },
+      { type:'mosque',   name:'Bahria Grand Mosque', dist:'0.4 km', lat:33.5368, lng:73.0905 },
+      { type:'hospital', name:'Bahria Hospital',     dist:'1.2 km', lat:33.5435, lng:73.0935 }
+    ],
     agent: { name: 'Umar Farooq', agency: 'Bahria Experts', joined: 'Jul 2019', rating: 4.7, listings: 58, deals: 214, phone: '0345-9876543', langs:['Urdu'] }
   },
   {
@@ -90,6 +111,13 @@ window.PPRE_LISTINGS = [
     ],
     desc: 'Bright upper portion with separate entrance. 3 bedrooms, drawing-dining, kitchen, 2 bathrooms. Ideal for a small family. Near G-9 Markaz with easy access to schools, hospitals and supermarkets.',
     amenities: ['Separate Entrance','Water Tank','Sui Gas','Tiled Floors','Geyser'],
+    nearby: [
+      { type:'market',   name:'G-9 Markaz',           dist:'0.4 km', lat:33.6995, lng:72.9945 },
+      { type:'school',   name:'G-9 Boys School',      dist:'0.5 km', lat:33.6930, lng:72.9958 },
+      { type:'hospital', name:'Polyclinic Hospital',  dist:'0.8 km', lat:33.7028, lng:73.0018 },
+      { type:'mosque',   name:'G-9 Sector Masjid',    dist:'0.3 km', lat:33.6975, lng:73.0005 },
+      { type:'park',     name:'G-9 Community Park',   dist:'0.6 km', lat:33.6925, lng:72.9995 }
+    ],
     agent: { name: 'Bilal Hussain', agency: 'City Rentals', joined: 'Sep 2022', rating: 4.6, listings: 18, deals: 41, phone: '0321-1112222', langs:['Urdu','English'] }
   },
   {
@@ -112,6 +140,13 @@ window.PPRE_LISTINGS = [
     ],
     desc: 'Prime commercial floor on Jinnah Avenue with massive boulevard frontage. Ideal for corporate office or bank branch. Rental yield ~ ₨850,000/month achievable. Building has lift, generator and 24/7 security.',
     amenities: ['Main Boulevard','Lift','Generator','3-Phase Power','Parking','Security'],
+    nearby: [
+      { type:'bank',      name:'Habib Bank HQ',        dist:'0.1 km', lat:33.7260, lng:73.0958 },
+      { type:'market',    name:'Blue Area Market',     dist:'0.2 km', lat:33.7242, lng:73.0968 },
+      { type:'transport', name:'Zero Point Bus Stop',  dist:'0.5 km', lat:33.7288, lng:73.0908 },
+      { type:'hospital',  name:'AFIC Hospital',        dist:'1.0 km', lat:33.7175, lng:73.0988 },
+      { type:'restaurant',name:'Monal Restaurant',     dist:'1.8 km', lat:33.7385, lng:73.0798 }
+    ],
     agent: { name: 'Nauman Shah', agency: 'Blue Area Properties', joined: 'Feb 2018', rating: 4.8, listings: 22, deals: 56, phone: '0301-9988776', langs:['Urdu','English'] }
   },
   {
@@ -135,6 +170,13 @@ window.PPRE_LISTINGS = [
     ],
     desc: 'Brand-new luxury 1-kanal home in Gulberg III with private swimming pool, designer interiors and fully fitted modular kitchen. Home automation, solar panels and large mature garden. Quiet residential street.',
     amenities: ['Swimming Pool','Servant Qtr','Generator','Solar','CCTV','Lawn','Imported Fittings','Home Automation'],
+    nearby: [
+      { type:'school',   name:'Aitchison College',    dist:'0.7 km', lat:31.5255, lng:74.3558 },
+      { type:'park',     name:'Model Town Park',      dist:'0.5 km', lat:31.5165, lng:74.3612 },
+      { type:'market',   name:'Gulberg Main Blvd',    dist:'0.2 km', lat:31.5215, lng:74.3608 },
+      { type:'mosque',   name:'Liberty Masjid',       dist:'0.3 km', lat:31.5228, lng:74.3562 },
+      { type:'hospital', name:'Doctors Hospital',     dist:'0.6 km', lat:31.5248, lng:74.3625 }
+    ],
     agent: { name: 'Hira Tariq', agency: 'Lahore Estates', joined: 'May 2020', rating: 5.0, listings: 29, deals: 75, phone: '0322-5556677', langs:['Urdu','English'] }
   },
   {
@@ -157,6 +199,13 @@ window.PPRE_LISTINGS = [
     ],
     desc: 'Double-storey 7-marla house in Bahria Phase 4. 5 bedrooms with attached baths, drawing/dining, TV lounge, modern kitchen, and a small lawn. Walking distance from school and grocery.',
     amenities: ['Lawn','Sui Gas','Generator','Tiled Floors','Cupboards Fitted'],
+    nearby: [
+      { type:'school',   name:'Happy Home School',    dist:'0.5 km', lat:33.5378, lng:73.0858 },
+      { type:'park',     name:'Phase 4 Central Park', dist:'0.4 km', lat:33.5308, lng:73.0855 },
+      { type:'market',   name:'Phase 4 Market',       dist:'0.3 km', lat:33.5358, lng:73.0798 },
+      { type:'mosque',   name:'Phase 4 Masjid',       dist:'0.2 km', lat:33.5325, lng:73.0812 },
+      { type:'hospital', name:'Quaid Hospital',       dist:'1.0 km', lat:33.5425, lng:73.0778 }
+    ],
     agent: { name: 'Umar Farooq', agency: 'Bahria Experts', joined: 'Jul 2019', rating: 4.7, listings: 58, deals: 214, phone: '0345-9876543', langs:['Urdu'] }
   },
   {
@@ -179,6 +228,13 @@ window.PPRE_LISTINGS = [
     ],
     desc: 'Cozy fully-furnished studio in E-11 with attached bathroom and small kitchenette. Perfect for a working bachelor or couple. WiFi and security included.',
     amenities: ['Furnished','WiFi','Lift','Parking','Security','Geyser'],
+    nearby: [
+      { type:'market',    name:'E-11 Market',          dist:'0.3 km', lat:33.7335, lng:72.9795 },
+      { type:'school',    name:'Roots Millennium E-11',dist:'0.6 km', lat:33.7358, lng:72.9748 },
+      { type:'hospital',  name:'E-11 Medical Centre',  dist:'0.7 km', lat:33.7278, lng:72.9748 },
+      { type:'mosque',    name:'E-11 Sector Masjid',   dist:'0.2 km', lat:33.7298, lng:72.9782 },
+      { type:'transport', name:'Faizabad Bus Stop',    dist:'1.2 km', lat:33.7215, lng:72.9878 }
+    ],
     agent: { name: 'Bilal Hussain', agency: 'City Rentals', joined: 'Sep 2022', rating: 4.6, listings: 18, deals: 41, phone: '0321-1112222', langs:['Urdu','English'] }
   }
 ];
