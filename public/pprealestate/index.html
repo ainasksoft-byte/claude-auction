@@ -744,6 +744,17 @@ function osmPoiType(tags){
   return null;
 }
 
+// CORS-safe fetch: tries direct, then falls back through corsproxy.io
+async function xfetch(url){
+  try {
+    const r = await fetch(url);
+    if(r.ok) return r;
+    throw new Error('not ok');
+  } catch(e) {
+    return fetch('https://corsproxy.io/?' + encodeURIComponent(url));
+  }
+}
+
 async function fetchNearbyFromOSM(lat, lng){
   const q=`[out:json][timeout:20];(
     node["amenity"~"^(school|hospital|clinic|pharmacy|place_of_worship|bank|restaurant|fast_food|cafe)$"](around:1200,${lat},${lng});
@@ -751,7 +762,7 @@ async function fetchNearbyFromOSM(lat, lng){
     node["shop"~"^(supermarket|grocery|mall)$"](around:1200,${lat},${lng});
     node["highway"="bus_stop"](around:900,${lat},${lng});
   );out 50;`;
-  const res = await fetch('https://overpass-api.de/api/interpreter?data='+encodeURIComponent(q));
+  const res = await xfetch('https://overpass-api.de/api/interpreter?data='+encodeURIComponent(q));
   const data = await res.json();
   const seen={}, pois=[];
   for(const n of (data.elements||[])){
@@ -768,8 +779,8 @@ async function fetchNearbyFromOSM(lat, lng){
 async function fetchOSRMRoute(fLat,fLng,tLat,tLng){
   try{
     const url=`https://router.project-osrm.org/route/v1/driving/${fLng},${fLat};${tLng},${tLat}?overview=full&geometries=geojson`;
-    const r=await fetch(url);
-    const d=await r.json();
+    const r = await xfetch(url);
+    const d = await r.json();
     if(d.code!=='Ok') return null;
     return {
       coords: d.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]),
