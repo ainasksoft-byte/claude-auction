@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pak Stay — Listing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/pakstay/assets/pakstay.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<style>
+  .container { max-width: 1200px; margin: 0 auto; padding: 88px 24px 60px; }
+
+  .crumbs { font-size: 12px; color: var(--text-muted); margin-bottom: 14px; }
+  .crumbs a:hover { color: var(--green); text-decoration: underline; }
+
+  .listing-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 14px; flex-wrap: wrap; }
+  .listing-title { font-size: 26px; font-weight: 800; color: var(--text-high); line-height: 1.25; }
+  .listing-meta { display: flex; align-items: center; gap: 14px; margin-top: 6px; font-size: 13px; color: var(--text-muted); flex-wrap: wrap; }
+  .listing-meta .star { color: var(--text-high); font-weight: 700; }
+  .listing-meta a { text-decoration: underline; }
+  .listing-actions { display: flex; gap: 8px; }
+  .pill-btn { display:flex; align-items:center; gap:6px; padding: 8px 12px; border-radius: var(--radius-sm); font-size: 12.5px; font-weight: 600; color: var(--text-mid); transition: background .15s; }
+  .pill-btn:hover { background: var(--bg); }
+
+  /* Gallery */
+  .gallery {
+    display: grid; grid-template-columns: 2fr 1fr 1fr;
+    grid-template-rows: 200px 200px;
+    gap: 8px; border-radius: var(--radius-lg); overflow: hidden;
+    margin-bottom: 28px;
+  }
+  .gallery .g-img { width:100%; height:100%; object-fit: cover; cursor: pointer; transition: opacity .2s; }
+  .gallery .g-img:hover { opacity: .92; }
+  .gallery .g0 { grid-row: 1 / span 2; }
+  .g-more { position: relative; }
+  .g-more-btn {
+    position: absolute; bottom: 12px; right: 12px;
+    background: var(--white); color: var(--text-high);
+    padding: 6px 12px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700;
+    box-shadow: var(--shadow-sm); border: 1px solid var(--border);
+  }
+
+  /* Main two columns */
+  .listing-grid { display: grid; grid-template-columns: 1fr 360px; gap: 40px; align-items: start; }
+  @media (max-width: 900px) { .listing-grid { grid-template-columns: 1fr; } }
+
+  .section { padding: 24px 0; border-bottom: 1px solid var(--border); }
+  .section:first-child { padding-top: 0; }
+  .section-title { font-size: 18px; font-weight: 800; color: var(--text-high); margin-bottom: 14px; }
+  .lead { font-size: 14px; color: var(--text-mid); line-height: 1.65; }
+
+  .host-row { display: flex; align-items: center; gap: 14px; }
+  .host-avatar {
+    width: 52px; height: 52px; border-radius: 50%;
+    background: var(--green-light); color: var(--green); display: flex;
+    align-items: center; justify-content: center; font-weight: 800; font-size: 18px;
+    border: 2px solid var(--green);
+  }
+  .host-meta { font-size: 12.5px; color: var(--text-muted); }
+  .host-meta strong { display: block; font-size: 15px; color: var(--text-high); font-weight: 700; margin-bottom: 2px; }
+
+  .feature-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+  }
+  @media (max-width: 600px) { .feature-grid { grid-template-columns: repeat(2, 1fr); } }
+  .feature {
+    border: 1px solid var(--border); border-radius: var(--radius-md);
+    padding: 14px; text-align: center;
+  }
+  .feature .fv { font-size: 18px; font-weight: 800; color: var(--text-high); }
+  .feature .fl { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
+
+  .amenity-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+  }
+  .amenity {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; border: 1px solid var(--border-faint); border-radius: var(--radius-sm);
+    font-size: 13px; color: var(--text-mid);
+  }
+  .amenity svg { color: var(--green); }
+
+  /* Reviews */
+  .rev-summary { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; }
+  .rev-score { font-size: 38px; font-weight: 800; color: var(--text-high); line-height: 1; }
+  .rev-meta { font-size: 13px; color: var(--text-muted); }
+  .review-list { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 700px) { .review-list { grid-template-columns: 1fr; } }
+  .review { padding: 14px 0; }
+  .review .ra { display:flex; gap: 10px; align-items: center; margin-bottom: 6px; }
+  .review .ra .av { width: 36px; height: 36px; border-radius: 50%; background: var(--green-light); color: var(--green); display:flex; align-items:center; justify-content:center; font-weight: 700; font-size: 12.5px; }
+  .review .rn { font-size: 13px; font-weight: 700; color: var(--text-high); }
+  .review .rd { font-size: 11.5px; color: var(--text-faint); }
+  .review p { font-size: 13px; color: var(--text-mid); line-height: 1.55; }
+
+  /* Map */
+  #detailMap { height: 320px; width: 100%; border-radius: var(--radius-lg); border: 1px solid var(--border); }
+
+  /* Booking sidebar */
+  .booking-card {
+    position: sticky; top: 88px;
+    background: var(--white); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 22px; box-shadow: var(--shadow-md);
+  }
+  .booking-price { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
+  .booking-price .v { font-size: 24px; font-weight: 800; color: var(--text-high); }
+  .booking-price .v span { font-size: 13px; font-weight: 400; color: var(--text-muted); }
+  .booking-price .r { font-size: 13px; color: var(--text-muted); }
+  .booking-price .r .star { color: var(--text-high); }
+
+  .date-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    border: 1.5px solid var(--border); border-radius: var(--radius-md); overflow: hidden;
+  }
+  .date-cell { padding: 10px 12px; border-right: 1.5px solid var(--border); }
+  .date-cell:last-child { border-right: 0; }
+  .date-cell label { display:block; font-size: 10px; font-weight: 800; color: var(--text-high); text-transform: uppercase; letter-spacing: .3px; }
+  .date-cell input { border: 0; outline: 0; font-size: 13px; color: var(--text-high); padding: 4px 0 0; width: 100%; background: transparent; }
+
+  .guests-row {
+    padding: 10px 12px;
+    border: 1.5px solid var(--border); border-radius: var(--radius-md);
+    margin-top: 8px;
+  }
+  .guests-row label { display:block; font-size: 10px; font-weight: 800; color: var(--text-high); text-transform: uppercase; letter-spacing: .3px; }
+  .guests-row select { border: 0; outline: 0; font-size: 13px; color: var(--text-high); padding: 4px 0 0; width: 100%; background: transparent; }
+
+  .price-rows { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border-faint); }
+  .price-rows .r { display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; color: var(--text-mid); }
+  .price-rows .r .v { color: var(--text-high); }
+  .price-rows .total { margin-top: 8px; padding-top: 12px; border-top: 1px solid var(--border-faint); font-weight: 800; color: var(--text-high); font-size: 14.5px; }
+
+  .badges-mini { display: flex; gap: 6px; margin: 8px 0 18px; flex-wrap: wrap; }
+  .badges-mini span {
+    background: var(--green-faint); color: var(--green);
+    padding: 3px 9px; border-radius: 5px; font-size: 11px; font-weight: 700;
+    border: 1px solid rgba(26,107,42,.18);
+  }
+
+  /* Leaflet pin */
+  .ps-pin-wrap { background: transparent; border: 0; }
+  .ps-pin {
+    background: var(--green); color: #fff; border: 2px solid #fff;
+    padding: 4px 10px; border-radius: 20px; font-size: 11.5px; font-weight: 700;
+    box-shadow: var(--shadow-md); white-space: nowrap; text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<div id="ps-header" data-active="explore"></div>
+
+<div class="container" id="content">
+  <!-- populated by JS -->
+</div>
+
+<script src="/pakstay/assets/pakstay.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+  const id = Number(PS.qs('id')) || 1;
+  const l = PS.byId(id) || PS.listings[0];
+
+  const amenityIcons = {
+    'AC':       '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="9" rx="1.5"/><path d="M6 18l-2 3M12 18v3M18 18l2 3"/></svg>',
+    'WiFi':     '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1"/></svg>',
+    'Parking':  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 17V7h4a3 3 0 0 1 0 6H9"/></svg>',
+    'Pool':     '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 17c2-2 4 0 6 0s4-2 6 0 4 2 6 0"/><path d="M2 21c2-2 4 0 6 0s4-2 6 0 4 2 6 0"/><path d="M6 12V5a3 3 0 0 1 6 0v8"/></svg>',
+    'Kitchen':  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="8" cy="7" r="1"/><circle cx="12" cy="7" r="1"/></svg>',
+    'BBQ':      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 8h14l-2 9H7L5 8z"/><path d="M9 21v-1M15 21v-1M8 4c1 1 0 2 0 3M16 4c1 1 0 2 0 3"/></svg>',
+    'Generator':'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="13 2 4 14 12 14 11 22 20 10 13 10 13 2"/></svg>',
+    'CCTV':     '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 8l-7 4-7-4 7-4 7 4z"/><path d="M2 12h6M2 16h6M2 20h6"/></svg>',
+    'Garden':   '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22V8M12 8c-3 0-5-2-5-5 3 0 5 2 5 5zM12 8c3 0 5-2 5-5-3 0-5 2-5 5z"/></svg>',
+    'TV':       '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><polyline points="8 22 12 18 16 22"/></svg>',
+    'Heater':   '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2v6M12 2v6M16 2v6"/><rect x="4" y="9" width="16" height="11" rx="2"/></svg>',
+    'Gym':      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h20M6 6v12M10 4v16M14 4v16M18 6v12"/></svg>',
+  };
+
+  const sampleReviews = [
+    { name: 'Ali Raza',   date: 'May 2026', text: 'Spotless place, great location and the host was super responsive. Will definitely book again.' },
+    { name: 'Hina Tariq', date: 'Apr 2026', text: 'Spacious and clean. Excellent value for the price. Kids loved the garden.' },
+    { name: 'Omar Sajid', date: 'Mar 2026', text: 'Smooth check-in, accurate photos. Everything as advertised.' },
+    { name: 'Sana Mir',   date: 'Feb 2026', text: 'Beautiful property and a great area. The kitchen was well stocked.' }
+  ];
+
+  const badgeMap = { 'CNIC Verified':'badge-v','PP Inspected':'badge-i','Superhost':'badge-sh','New Listing':'badge-new' };
+
+  // Build gallery (first image big, next four in 2x2)
+  const imgs = l.images.concat(l.images, l.images).slice(0, 5);
+
+  document.title = `Pak Stay — ${l.short}`;
+
+  document.getElementById('content').innerHTML = `
+    <div class="crumbs">
+      <a href="/pakstay/index.html">Stays</a> ›
+      <a href="/pakstay/index.html">${l.city}</a> ›
+      <span>${l.short}</span>
+    </div>
+
+    <div class="listing-head">
+      <div>
+        <h1 class="listing-title">${l.title}</h1>
+        <div class="listing-meta">
+          <span><span class="star">★</span> <strong>${l.rating}</strong> · <a href="#reviews">${l.reviews} reviews</a></span>
+          <span>${l.loc}</span>
+          ${(l.badges||[]).slice(0,2).map(b=>`<span style="color:var(--green);font-weight:700">${b}</span>`).join(' · ')}
+        </div>
+      </div>
+      <div class="listing-actions">
+        <button class="pill-btn" onclick="PS.toast('Link copied')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          Share
+        </button>
+        <button class="pill-btn" onclick="PS.toast('Saved to Wishlist')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          Save
+        </button>
+      </div>
+    </div>
+
+    <div class="gallery">
+      <img class="g-img g0" src="${imgs[0]}" alt="" />
+      <img class="g-img" src="${imgs[1] || imgs[0]}" alt="" />
+      <img class="g-img" src="${imgs[2] || imgs[0]}" alt="" />
+      <img class="g-img" src="${imgs[3] || imgs[0]}" alt="" />
+      <div class="g-more"><img class="g-img" src="${imgs[4] || imgs[0]}" alt="" /><button class="g-more-btn" onclick="PS.toast('${l.images.length} photos')">Show all photos</button></div>
+    </div>
+
+    <div class="listing-grid">
+      <div>
+        <!-- Host row -->
+        <div class="section">
+          <div class="host-row">
+            <div class="host-avatar">${l.host.name.charAt(0)}</div>
+            <div>
+              <div class="host-meta"><strong>${l.type} hosted by ${l.host.name}</strong>${l.guests} guests · ${l.bedrooms} bedrooms · ${l.bathrooms} bathrooms · ${l.size}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Features -->
+        <div class="section">
+          <div class="feature-grid">
+            <div class="feature"><div class="fv">${l.bedrooms}</div><div class="fl">Bedrooms</div></div>
+            <div class="feature"><div class="fv">${l.bathrooms}</div><div class="fl">Bathrooms</div></div>
+            <div class="feature"><div class="fv">${l.guests}</div><div class="fl">Guests</div></div>
+            <div class="feature"><div class="fv">${l.size}</div><div class="fl">Property Size</div></div>
+          </div>
+        </div>
+
+        <!-- About -->
+        <div class="section">
+          <h2 class="section-title">About this place</h2>
+          <p class="lead">${l.desc}</p>
+        </div>
+
+        <!-- Amenities -->
+        <div class="section">
+          <h2 class="section-title">What this place offers</h2>
+          <div class="amenity-grid">
+            ${l.amenities.map(a => `<div class="amenity">${amenityIcons[a] || amenityIcons['TV']}<span>${a}</span></div>`).join('')}
+          </div>
+        </div>
+
+        <!-- Reviews -->
+        <div class="section" id="reviews">
+          <h2 class="section-title">Reviews</h2>
+          <div class="rev-summary">
+            <div class="rev-score">${l.rating}</div>
+            <div class="rev-meta">
+              <div style="font-weight:700;color:var(--text-high);font-size:14px;">★ ${l.rating}</div>
+              <div>Based on ${l.reviews} verified guest reviews</div>
+            </div>
+          </div>
+          <div class="review-list">
+            ${sampleReviews.map(r => `
+              <div class="review">
+                <div class="ra">
+                  <div class="av">${r.name.charAt(0)}</div>
+                  <div><div class="rn">${r.name}</div><div class="rd">${r.date}</div></div>
+                </div>
+                <p>${r.text}</p>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- Location -->
+        <div class="section">
+          <h2 class="section-title">Where you'll be</h2>
+          <p class="lead" style="margin-bottom:14px;">${l.loc}</p>
+          <div id="detailMap"></div>
+        </div>
+
+        <!-- Host card -->
+        <div class="section" style="border-bottom:0;">
+          <h2 class="section-title">Hosted by ${l.host.name}</h2>
+          <div class="host-row">
+            <div class="host-avatar" style="width:60px;height:60px;font-size:22px;">${l.host.name.charAt(0)}</div>
+            <div>
+              <div class="host-meta">
+                <strong>${l.host.name}</strong>
+                Joined ${l.host.joined} · ★ ${l.host.rating} host rating · ${l.host.listings} listings
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Booking sidebar -->
+      <aside>
+        <div class="booking-card">
+          <div class="booking-price">
+            <div class="v">${PS.fmtPrice(l.price)}<span> / night</span></div>
+            <div class="r"><span class="star">★</span> ${l.rating} · <span style="text-decoration:underline;">${l.reviews} reviews</span></div>
+          </div>
+
+          <div class="date-grid">
+            <div class="date-cell"><label>Check-in</label><input type="date" id="ciDate" value="2026-06-14" /></div>
+            <div class="date-cell"><label>Check-out</label><input type="date" id="coDate" value="2026-06-17" /></div>
+          </div>
+          <div class="guests-row">
+            <label>Guests</label>
+            <select id="guestsSel">
+              ${Array.from({length: l.guests}, (_,i) => `<option value="${i+1}" ${i+1===2?'selected':''}>${i+1} ${i===0?'guest':'guests'}</option>`).join('')}
+            </select>
+          </div>
+
+          <div class="badges-mini">
+            ${(l.badges||[]).map(b => `<span>${b}</span>`).join('')}
+          </div>
+
+          <button class="btn btn-primary btn-block btn-lg" id="reserveBtn">Reserve</button>
+          <div style="font-size:11.5px;color:var(--text-faint);text-align:center;margin-top:8px;">You won't be charged yet</div>
+
+          <div class="price-rows">
+            <div class="r"><span id="nightsLabel">₨${l.price.toLocaleString('en-PK')} x 3 nights</span><span class="v" id="subTotal">${PS.fmtPrice(l.price * 3)}</span></div>
+            <div class="r"><span>Cleaning fee</span><span class="v">₨2,500</span></div>
+            <div class="r"><span>Service fee</span><span class="v" id="svcFee">${PS.fmtPrice(Math.round(l.price * 3 * 0.08))}</span></div>
+            <div class="r"><span>Taxes</span><span class="v" id="taxFee">${PS.fmtPrice(Math.round(l.price * 3 * 0.05))}</span></div>
+            <div class="r total"><span>Total</span><span class="v" id="grandTotal">—</span></div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  `;
+
+  // ── Price calc + reserve action
+  function recalc(){
+    const ci = new Date(document.getElementById('ciDate').value);
+    const co = new Date(document.getElementById('coDate').value);
+    let nights = Math.max(1, Math.round((co - ci) / 86400000));
+    if (isNaN(nights)) nights = 3;
+    const sub = l.price * nights;
+    const svc = Math.round(sub * 0.08);
+    const tax = Math.round(sub * 0.05);
+    const clean = 2500;
+    document.getElementById('nightsLabel').textContent = `₨${l.price.toLocaleString('en-PK')} x ${nights} nights`;
+    document.getElementById('subTotal').textContent = PS.fmtPrice(sub);
+    document.getElementById('svcFee').textContent = PS.fmtPrice(svc);
+    document.getElementById('taxFee').textContent = PS.fmtPrice(tax);
+    document.getElementById('grandTotal').textContent = PS.fmtPrice(sub + svc + tax + clean);
+  }
+  document.getElementById('ciDate').addEventListener('change', recalc);
+  document.getElementById('coDate').addEventListener('change', recalc);
+  document.getElementById('reserveBtn').addEventListener('click', () => {
+    const ci = document.getElementById('ciDate').value;
+    const co = document.getElementById('coDate').value;
+    const g  = document.getElementById('guestsSel').value;
+    location.href = `/pakstay/checkout.html?id=${l.id}&ci=${ci}&co=${co}&guests=${g}`;
+  });
+  recalc();
+
+  // ── Leaflet map
+  const map = L.map('detailMap', { scrollWheelZoom: false }).setView([l.lat, l.lng], 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19, attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+  L.marker([l.lat, l.lng], { icon: PS.pricePin(PS.fmtPrice(l.price), true) }).addTo(map);
+</script>
+</body>
+</html>

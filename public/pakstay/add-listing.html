@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pak Stay — List Your Property</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/pakstay/assets/pakstay.css" />
+<style>
+  .add-shell { max-width: 960px; margin: 0 auto; padding: 90px 24px 60px; }
+  .add-head { margin-bottom: 22px; }
+  .add-head h1 { font-size: 26px; font-weight: 800; }
+  .add-head p  { font-size: 14px; color: var(--text-muted); margin-top: 4px; }
+
+  /* Stepper */
+  .stepper { display: flex; align-items: center; gap: 8px; margin: 18px 0 28px; flex-wrap: wrap; }
+  .step { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 50px;
+          background: var(--white); border: 1px solid var(--border); font-size: 12.5px; font-weight: 600; color: var(--text-muted); }
+  .step .n { width: 22px; height: 22px; border-radius: 50%; background: var(--bg); display:flex; align-items:center; justify-content:center; font-size: 11px; font-weight: 800; color: var(--text-muted); }
+  .step.done .n { background: var(--green); color: #fff; }
+  .step.active { border-color: var(--green); color: var(--green); background: var(--green-faint); }
+  .step.active .n { background: var(--green); color: #fff; }
+  .step-arrow { color: var(--text-faint); }
+
+  /* Section grid */
+  .section { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 18px; }
+  .section h2 { font-size: 17px; font-weight: 800; margin-bottom: 4px; }
+  .section .desc { font-size: 13px; color: var(--text-muted); margin-bottom: 18px; }
+
+  /* Property type tiles */
+  .type-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  @media (max-width: 700px) { .type-grid { grid-template-columns: repeat(2, 1fr); } }
+  .type-tile {
+    border: 1.5px solid var(--border); border-radius: var(--radius-md); padding: 14px 12px;
+    text-align: center; cursor: pointer; transition: all .15s; background: var(--white);
+  }
+  .type-tile:hover, .type-tile.on { border-color: var(--green); background: var(--green-faint); color: var(--green); }
+  .type-tile svg { margin: 0 auto 6px; opacity: .8; }
+  .type-tile.on svg { opacity: 1; }
+  .type-tile div { font-size: 12.5px; font-weight: 700; }
+
+  /* Counter row */
+  .counter-list { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 600px) { .counter-list { grid-template-columns: 1fr; } }
+  .counter-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border-faint); }
+  .counter-row:last-child { border-bottom: 0; }
+  .c-lbl { font-size: 13.5px; font-weight: 600; }
+  .c-lbl .sub { display: block; font-size: 11.5px; color: var(--text-faint); font-weight: 400; }
+  .counter { display: flex; align-items: center; gap: 12px; }
+  .counter .step-btn {
+    width: 30px; height: 30px; border-radius: 50%;
+    border: 1.5px solid var(--border); color: var(--text-mid);
+    font-size: 16px; font-weight: 600; transition: all .15s;
+  }
+  .counter .step-btn:hover { border-color: var(--green); color: var(--green); }
+  .counter .step-btn:disabled { opacity: .4; cursor: not-allowed; }
+  .counter .val { font-size: 14px; font-weight: 700; min-width: 18px; text-align: center; }
+
+  /* Amenities */
+  .amen-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  @media (max-width: 700px) { .amen-grid { grid-template-columns: repeat(2, 1fr); } }
+  .amen {
+    display:flex; align-items:center; gap: 8px;
+    padding: 10px 12px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+    font-size: 12.5px; font-weight: 600; color: var(--text-mid); cursor: pointer;
+    transition: all .15s; user-select: none;
+  }
+  .amen:hover, .amen.on { border-color: var(--green); color: var(--green); background: var(--green-faint); }
+
+  /* Photo upload */
+  .upload-zone {
+    border: 2px dashed var(--border); border-radius: var(--radius-md);
+    padding: 30px; text-align: center; transition: border-color .15s;
+    cursor: pointer; background: var(--bg);
+  }
+  .upload-zone:hover { border-color: var(--green); background: var(--green-faint); }
+  .upload-zone svg { color: var(--green); margin-bottom: 10px; }
+  .upload-zone .t { font-size: 14px; font-weight: 700; color: var(--text-high); }
+  .upload-zone .s { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+  .photo-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 14px; }
+  @media (max-width: 700px) { .photo-grid { grid-template-columns: repeat(2, 1fr); } }
+  .photo-slot {
+    aspect-ratio: 4/3; border-radius: var(--radius-sm); overflow: hidden; position: relative;
+    background-size: cover; background-position: center;
+    border: 1px solid var(--border);
+  }
+  .photo-slot.cover::before {
+    content: 'Cover'; position: absolute; top: 6px; left: 6px;
+    background: var(--green); color: #fff; padding: 2px 7px; border-radius: 4px;
+    font-size: 10px; font-weight: 700;
+  }
+  .photo-rm {
+    position: absolute; top: 6px; right: 6px; width: 24px; height: 24px;
+    border-radius: 50%; background: rgba(17,24,39,.8); color: #fff;
+    display:flex; align-items:center; justify-content:center; font-size: 14px; font-weight: 700;
+    cursor: pointer;
+  }
+
+  /* Price input */
+  .price-input-wrap { position: relative; max-width: 280px; }
+  .price-input-wrap .px { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 18px; font-weight: 700; color: var(--text-muted); }
+  .price-input-wrap input {
+    width: 100%; padding: 14px 60px 14px 40px;
+    border: 1.5px solid var(--border); border-radius: var(--radius-md);
+    font-size: 22px; font-weight: 800; color: var(--text-high); outline: none;
+  }
+  .price-input-wrap input:focus { border-color: var(--green); }
+  .price-input-wrap .sx { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); font-size: 12px; color: var(--text-muted); }
+
+  .save-bar {
+    position: sticky; bottom: 0; background: var(--white); border-top: 1px solid var(--border);
+    padding: 14px 0; margin: 24px -24px -60px; padding-left: 24px; padding-right: 24px;
+    display: flex; justify-content: space-between; align-items: center;
+    box-shadow: 0 -8px 30px rgba(0,0,0,.04);
+  }
+  .save-progress { font-size: 12.5px; color: var(--text-muted); }
+  .save-progress strong { color: var(--green); }
+</style>
+</head>
+<body>
+
+<div id="ps-header" data-active="list"></div>
+
+<div class="add-shell">
+  <div class="add-head">
+    <h1>List your property</h1>
+    <p>Tell guests about your place. You can save and continue later — we'll keep your progress.</p>
+  </div>
+
+  <div class="stepper">
+    <div class="step active"><div class="n">1</div>Basics</div>
+    <span class="step-arrow">›</span>
+    <div class="step"><div class="n">2</div>Location</div>
+    <span class="step-arrow">›</span>
+    <div class="step"><div class="n">3</div>Details</div>
+    <span class="step-arrow">›</span>
+    <div class="step"><div class="n">4</div>Photos</div>
+    <span class="step-arrow">›</span>
+    <div class="step"><div class="n">5</div>Pricing</div>
+  </div>
+
+  <!-- Property type -->
+  <section class="section">
+    <h2>What kind of place are you listing?</h2>
+    <p class="desc">Pick the option that best describes your property.</p>
+    <div class="type-grid" id="typeGrid">
+      <div class="type-tile on" onclick="pickType(this)">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <div>Guest House</div>
+      </div>
+      <div class="type-tile" onclick="pickType(this)">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 22V11L12 2l10 9v11"/><path d="M2 11h20"/></svg>
+        <div>Farmhouse</div>
+      </div>
+      <div class="type-tile" onclick="pickType(this)">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4"/></svg>
+        <div>Furnished Apt</div>
+      </div>
+      <div class="type-tile" onclick="pickType(this)">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 10 2-2m0 0 7-7 7 7M5 8v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/></svg>
+        <div>Cottage</div>
+      </div>
+      <div class="type-tile" onclick="pickType(this)">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 22V6l5-4 5 4 5-4 5 4v16"/><path d="M10 22v-5h4v5"/></svg>
+        <div>Heritage Haveli</div>
+      </div>
+      <div class="type-tile" onclick="pickType(this)">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h20M2 17c2-2 4 0 6 0s4-2 6 0 4 2 6 0"/></svg>
+        <div>Beach Hut</div>
+      </div>
+      <div class="type-tile" onclick="pickType(this)">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3l4 8 5-5 5 15H2L8 3z"/></svg>
+        <div>Mountain Retreat</div>
+      </div>
+      <div class="type-tile" onclick="pickType(this)">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4v16"/><path d="M2 8h18a2 2 0 0 1 2 2v10"/><path d="M2 17h20"/></svg>
+        <div>Private Room</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Basics -->
+  <section class="section">
+    <h2>Tell us about your place</h2>
+    <p class="desc">Short, clear titles get more bookings.</p>
+
+    <div class="form-group">
+      <label class="form-label">Listing title</label>
+      <input class="form-input" placeholder="e.g. Luxury Guest House — F-7 Markaz, Islamabad" />
+      <div class="form-hint">Up to 60 characters. Make it specific.</div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Description</label>
+      <textarea class="form-textarea" placeholder="Tell guests what makes your place special — the neighbourhood, view, what's nearby…"></textarea>
+    </div>
+  </section>
+
+  <!-- Location -->
+  <section class="section">
+    <h2>Where is it?</h2>
+    <p class="desc">We share your exact address only after a booking is confirmed.</p>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">City</label>
+        <select class="form-select">
+          <option>Islamabad</option><option>Rawalpindi</option><option>Lahore</option>
+          <option>Karachi</option><option>Murree</option><option>Nathiagali</option><option>Other</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Area / Sector</label><input class="form-input" placeholder="e.g. F-7 Markaz" /></div>
+    </div>
+    <div class="form-group"><label class="form-label">Street address</label><input class="form-input" placeholder="House #, Street #" /></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Latitude</label><input class="form-input" placeholder="33.7080" /></div>
+      <div class="form-group"><label class="form-label">Longitude</label><input class="form-input" placeholder="73.0480" /></div>
+    </div>
+  </section>
+
+  <!-- Details -->
+  <section class="section">
+    <h2>Property details</h2>
+    <p class="desc">How many guests can stay comfortably?</p>
+    <div class="counter-list">
+      <div class="counter-row">
+        <div class="c-lbl">Guests<span class="sub">Maximum overnight guests</span></div>
+        <div class="counter"><button class="step-btn" onclick="cnt(this,-1)">−</button><span class="val">4</span><button class="step-btn" onclick="cnt(this,1)">+</button></div>
+      </div>
+      <div class="counter-row">
+        <div class="c-lbl">Bedrooms<span class="sub">Number of separate rooms</span></div>
+        <div class="counter"><button class="step-btn" onclick="cnt(this,-1)">−</button><span class="val">2</span><button class="step-btn" onclick="cnt(this,1)">+</button></div>
+      </div>
+      <div class="counter-row">
+        <div class="c-lbl">Beds<span class="sub">Total beds available</span></div>
+        <div class="counter"><button class="step-btn" onclick="cnt(this,-1)">−</button><span class="val">3</span><button class="step-btn" onclick="cnt(this,1)">+</button></div>
+      </div>
+      <div class="counter-row">
+        <div class="c-lbl">Bathrooms<span class="sub">Half baths count as 0.5</span></div>
+        <div class="counter"><button class="step-btn" onclick="cnt(this,-1)">−</button><span class="val">2</span><button class="step-btn" onclick="cnt(this,1)">+</button></div>
+      </div>
+    </div>
+
+    <div style="margin-top:18px;" class="form-row">
+      <div class="form-group"><label class="form-label">Property size</label><input class="form-input" placeholder="e.g. 10" /></div>
+      <div class="form-group"><label class="form-label">Unit</label>
+        <select class="form-select"><option>Marla</option><option>Kanal</option><option>Sq ft</option></select>
+      </div>
+    </div>
+  </section>
+
+  <!-- Amenities -->
+  <section class="section">
+    <h2>What do you offer?</h2>
+    <p class="desc">Pick everything that's available to guests.</p>
+    <div class="amen-grid" id="amenGrid"></div>
+  </section>
+
+  <!-- Photos -->
+  <section class="section">
+    <h2>Add some photos</h2>
+    <p class="desc">Listings with 5+ photos get 2x more bookings. The first photo will be your cover image.</p>
+
+    <div class="upload-zone" onclick="PS.toast('Choose photos…')">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      <div class="t">Drag &amp; drop photos here, or click to browse</div>
+      <div class="s">JPG or PNG · up to 10 MB each</div>
+    </div>
+
+    <div class="photo-grid" id="photoGrid"></div>
+  </section>
+
+  <!-- Pricing -->
+  <section class="section">
+    <h2>Set your price</h2>
+    <p class="desc">You can adjust this any time, including weekend and seasonal rates.</p>
+    <div class="price-input-wrap">
+      <span class="px">₨</span>
+      <input type="number" value="15000" id="nightly" />
+      <span class="sx">PKR / night</span>
+    </div>
+
+    <div class="form-row" style="margin-top: 18px;">
+      <div class="form-group"><label class="form-label">Cleaning fee</label>
+        <div class="price-input-wrap"><span class="px">₨</span><input type="number" value="2500" /><span class="sx">PKR</span></div>
+      </div>
+      <div class="form-group"><label class="form-label">Security deposit</label>
+        <div class="price-input-wrap"><span class="px">₨</span><input type="number" value="10000" /><span class="sx">PKR</span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="save-bar">
+    <div class="save-progress">Listing progress · <strong>72%</strong> complete</div>
+    <div style="display:flex; gap: 10px;">
+      <button class="btn btn-outline" onclick="PS.toast('Draft saved')">Save draft</button>
+      <button class="btn btn-primary" onclick="publish()">Publish listing</button>
+    </div>
+  </div>
+</div>
+
+<script src="/pakstay/assets/pakstay.js"></script>
+<script>
+  function pickType(el){
+    document.querySelectorAll('.type-tile').forEach(t => t.classList.remove('on'));
+    el.classList.add('on');
+  }
+  function cnt(btn, delta){
+    const val = btn.parentElement.querySelector('.val');
+    const n = Math.max(0, Number(val.textContent) + delta);
+    val.textContent = n;
+  }
+
+  // Amenities
+  const amenities = ['AC','WiFi','Parking','Pool','Kitchen','BBQ','Generator','CCTV','Garden','TV','Heater','Gym','Pet Friendly','Workspace','Washer','Smoke alarm'];
+  document.getElementById('amenGrid').innerHTML = amenities
+    .map(a => `<div class="amen ${['WiFi','Parking','AC','Kitchen'].includes(a)?'on':''}" onclick="this.classList.toggle('on')">${a}</div>`).join('');
+
+  // Photo placeholders
+  const photos = [
+    'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=600&q=75',
+    'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&q=75',
+    'https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?w=600&q=75',
+    'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&q=75'
+  ];
+  document.getElementById('photoGrid').innerHTML = photos
+    .map((src, i) => `
+      <div class="photo-slot ${i===0?'cover':''}" style="background-image:url(${src});">
+        <div class="photo-rm" onclick="this.parentElement.remove()">×</div>
+      </div>`).join('');
+
+  function publish(){
+    PS.toast('Listing submitted for review');
+    setTimeout(() => location.href = '/pakstay/dashboard.html', 900);
+  }
+</script>
+</body>
+</html>

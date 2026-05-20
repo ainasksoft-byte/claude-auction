@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pak Stay — Find Your Perfect Stay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/pakstay/assets/pakstay.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<style>
+  /* ===== CATEGORY STRIP ===== */
+  .cat-strip {
+    position: fixed; top: var(--header-h); left: 0; right: 0; z-index: 90;
+    background: var(--white); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 6px;
+    padding: 0 20px; height: var(--cat-h);
+    overflow-x: auto; scrollbar-width: none;
+  }
+  .cat-strip::-webkit-scrollbar { display: none; }
+  .cat-chip {
+    display: flex; align-items: center; gap: 6px;
+    padding: 5px 14px; border-radius: 50px;
+    border: 1.5px solid var(--border);
+    font-size: 12.5px; font-weight: 500; color: var(--text-mid);
+    white-space: nowrap; cursor: pointer; flex-shrink: 0;
+    transition: all .15s;
+  }
+  .cat-chip svg { flex-shrink: 0; opacity: .55; }
+  .cat-chip:hover { border-color: var(--green); color: var(--green); }
+  .cat-chip:hover svg { opacity: 1; stroke: var(--green); }
+  .cat-chip.active { background: var(--green); border-color: var(--green); color: #fff; }
+  .cat-chip.active svg { opacity: 1; stroke: #fff; }
+
+  /* ===== LAYOUT ===== */
+  .page-body { padding-top: calc(var(--header-h) + var(--cat-h)); display: flex; min-height: 100vh; }
+
+  /* ===== SIDEBAR ===== */
+  .sidebar {
+    width: var(--sidebar-w); flex-shrink: 0;
+    position: fixed; top: calc(var(--header-h) + var(--cat-h)); left: 0; bottom: 0;
+    overflow-y: auto; background: var(--white); border-right: 1px solid var(--border);
+    padding: 16px 0 80px;
+  }
+  .sb-section-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 11px 20px; cursor: pointer; user-select: none;
+    font-size: 12.5px; font-weight: 700; color: var(--text-high);
+    letter-spacing: .3px; text-transform: uppercase;
+  }
+  .sb-section-head svg { opacity: .4; transition: transform .22s; }
+  .sb-section-head.collapsed svg { transform: rotate(-90deg); }
+  .sb-body { overflow: hidden; transition: max-height .28s ease; }
+  .sb-sep { height: 1px; background: var(--border-faint); margin: 4px 20px; }
+
+  .f-row { display: flex; align-items: center; justify-content: space-between; padding: 7px 20px; cursor: pointer; transition: background .1s; }
+  .f-row:hover { background: var(--bg); }
+  .f-label { display: flex; align-items: center; gap: 9px; font-size: 13px; color: var(--text-mid); }
+  .f-label svg { opacity: .5; flex-shrink: 0; }
+  .f-right { display: flex; align-items: center; gap: 8px; }
+  .f-count { font-size: 11.5px; color: var(--text-faint); }
+  .checkbox {
+    width: 17px; height: 17px; border-radius: 4px;
+    border: 1.5px solid var(--border); flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .15s;
+  }
+  .checkbox.on { background: var(--green); border-color: var(--green); }
+  .checkbox.on::after {
+    content: ''; width: 9px; height: 5px;
+    border-left: 2px solid #fff; border-bottom: 2px solid #fff;
+    transform: rotate(-45deg) translateY(-1px);
+  }
+
+  .price-inputs { display: flex; gap: 8px; padding: 4px 20px 10px; }
+  .pi-wrap { flex: 1; position: relative; }
+  .pi-prefix { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 12px; font-weight: 600; color: var(--text-muted); }
+  .pi-wrap input {
+    width: 100%; padding: 9px 8px 9px 30px;
+    border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+    font-size: 13px; color: var(--text-high); outline: none; transition: border-color .18s;
+  }
+  .pi-wrap input:focus { border-color: var(--green); }
+  .range-wrap { padding: 2px 20px 14px; }
+  .range-track { height: 3px; background: var(--border); border-radius: 2px; position: relative; }
+  .range-fill { position: absolute; left: 0; right: 20%; height: 100%; background: var(--green); border-radius: 2px; }
+  .range-thumb { position: absolute; top: 50%; transform: translate(-50%, -50%); width: 14px; height: 14px; border-radius: 50%; background: var(--white); border: 2px solid var(--green); box-shadow: var(--shadow-sm); cursor: pointer; }
+  .range-thumb.l { left: 0; }
+  .range-thumb.r { left: 80%; }
+
+  .pill-row { display: flex; gap: 5px; padding: 4px 20px 12px; flex-wrap: wrap; }
+  .pill {
+    padding: 5px 13px; border-radius: 50px;
+    border: 1.5px solid var(--border); font-size: 12.5px; color: var(--text-mid);
+    cursor: pointer; transition: all .15s;
+  }
+  .pill:hover { border-color: var(--green); color: var(--green); }
+  .pill.on { background: var(--green); border-color: var(--green); color: #fff; }
+
+  .amenity-wrap { display: flex; flex-wrap: wrap; gap: 5px; padding: 4px 20px 12px; }
+  .a-chip {
+    padding: 4px 11px; border-radius: 6px;
+    border: 1.5px solid var(--border); font-size: 12px; color: var(--text-mid);
+    cursor: pointer; transition: all .15s;
+  }
+  .a-chip:hover, .a-chip.on { border-color: var(--green); color: var(--green); background: var(--green-faint); }
+
+  .tgl-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 20px; }
+  .tgl-lbl { font-size: 13px; color: var(--text-mid); font-weight: 500; }
+  .tgl { width: 38px; height: 20px; border-radius: 10px; background: var(--border); position: relative; cursor: pointer; transition: background .18s; }
+  .tgl.on { background: var(--green); }
+  .tgl::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--white); box-shadow: var(--shadow-sm); transition: transform .18s; }
+  .tgl.on::after { transform: translateX(18px); }
+
+  .sb-footer {
+    position: fixed; bottom: 0; left: 0; width: var(--sidebar-w);
+    background: var(--white); border-top: 1px solid var(--border);
+    padding: 12px 20px; display: flex; gap: 8px; z-index: 95;
+  }
+  .btn-reset { flex: 1; padding: 9px; border-radius: var(--radius-sm); border: 1.5px solid var(--border); font-size: 13px; font-weight: 600; color: var(--text-mid); transition: all .15s; }
+  .btn-reset:hover { border-color: var(--text-mid); }
+  .btn-apply { flex: 2; padding: 9px; border-radius: var(--radius-sm); background: var(--green); color: #fff; font-size: 13px; font-weight: 600; transition: background .15s; }
+  .btn-apply:hover { background: var(--green-hover); }
+
+  /* ===== MAIN ===== */
+  .main { margin-left: var(--sidebar-w); flex: 1; padding: 20px 20px 48px; min-width: 0; }
+
+  .results-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; }
+  .results-title { font-size: 19px; font-weight: 800; color: var(--text-high); }
+  .results-title span { font-size: 14px; font-weight: 400; color: var(--text-muted); margin-left: 8px; }
+  .results-ctrl { display: flex; align-items: center; gap: 8px; }
+  .sort-sel {
+    padding: 7px 30px 7px 11px; border-radius: var(--radius-sm);
+    border: 1.5px solid var(--border); font-size: 13px; color: var(--text-mid);
+    appearance: none;
+    background: var(--white) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2.5'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 9px center;
+    cursor: pointer; outline: none; transition: border-color .18s;
+  }
+  .sort-sel:focus { border-color: var(--green); }
+  .map-btn {
+    display: flex; align-items: center; gap: 6px;
+    padding: 7px 14px; border-radius: var(--radius-sm);
+    border: 1.5px solid var(--border); font-size: 13px; font-weight: 600;
+    color: var(--text-mid); background: var(--white); transition: all .18s;
+  }
+  .map-btn:hover, .map-btn.on { border-color: var(--green); color: var(--green); background: var(--green-faint); }
+
+  .active-tags { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+  .a-tag { display: flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 50px; background: var(--green-faint); border: 1px solid rgba(26,107,42,.18); font-size: 12px; font-weight: 500; color: var(--green); cursor: pointer; }
+  .a-tag .rm { font-size: 14px; line-height: 1; font-weight: 700; margin-left: 2px; opacity: .7; }
+  .a-tag:hover .rm { opacity: 1; }
+
+  /* ===== LISTINGS + MAP ===== */
+  .listings-wrap { display: flex; gap: 16px; }
+  .grid-col { flex: 1; min-width: 0; }
+  .map-col {
+    width: 420px; flex-shrink: 0;
+    position: sticky; top: calc(var(--header-h) + var(--cat-h) + 20px);
+    height: calc(100vh - var(--header-h) - var(--cat-h) - 40px);
+    border-radius: var(--radius-lg); overflow: hidden;
+    border: 1.5px solid var(--border); display: none;
+    background: #e4ede6;
+  }
+  .map-col.on { display: block; }
+  #leafletMap { width: 100%; height: 100%; }
+
+  .prop-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(258px, 1fr));
+    gap: 16px;
+  }
+
+  .card {
+    background: var(--white); border-radius: var(--radius-lg);
+    border: 1px solid var(--border); overflow: hidden; cursor: pointer;
+    transition: transform .2s, box-shadow .2s; position: relative;
+  }
+  .card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+  .card:hover .c-img img { transform: scale(1.04); }
+  .card.featured { grid-column: span 2; }
+  .card.selected { outline: 2px solid var(--green); outline-offset: 2px; }
+
+  .c-img { position: relative; height: 186px; overflow: hidden; background: #d8e5db; }
+  .c-img img { height: 100%; width: 100%; object-fit: cover; transition: transform .4s ease; }
+
+  .badge-row { position: absolute; top: 10px; left: 10px; display: flex; flex-direction: column; gap: 4px; }
+  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 5px; font-size: 10.5px; font-weight: 700; letter-spacing: .15px; backdrop-filter: blur(6px); }
+  .badge-v   { background: rgba(26,107,42,.88); color: #fff; }
+  .badge-i   { background: rgba(30,30,30,.75);  color: #fff; }
+  .badge-sh  { background: rgba(55,65,81,.82);  color: #fff; }
+  .badge-new { background: rgba(55,65,81,.82);  color: #fff; }
+
+  .heart {
+    position: absolute; top: 10px; right: 10px;
+    width: 30px; height: 30px; border-radius: 50%;
+    background: rgba(255,255,255,.82); backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: var(--shadow-sm); transition: transform .15s; z-index: 2;
+  }
+  .heart:hover { transform: scale(1.1); }
+  .heart.on svg { fill: var(--green); stroke: var(--green); }
+
+  .dist-tag {
+    position: absolute; bottom: 10px; left: 10px;
+    background: rgba(17,24,39,.7); color: #fff; backdrop-filter: blur(4px);
+    padding: 3px 9px; border-radius: 5px; font-size: 11px; font-weight: 600;
+  }
+
+  .c-body { padding: 13px 13px 11px; }
+  .c-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 3px; }
+  .c-title { font-size: 13.5px; font-weight: 700; color: var(--text-high); line-height: 1.3; flex: 1; }
+  .c-rating { display: flex; align-items: center; gap: 3px; flex-shrink: 0; }
+  .star { color: #111827; font-size: 12px; }
+  .r-val { font-size: 13px; font-weight: 700; color: var(--text-high); }
+  .r-cnt { font-size: 11px; color: var(--text-faint); }
+  .c-loc { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px; margin-bottom: 10px; }
+
+  .specs { display: flex; border: 1px solid var(--border-faint); border-radius: var(--radius-sm); overflow: hidden; margin-bottom: 11px; }
+  .spec { flex: 1; padding: 7px 5px; text-align: center; border-right: 1px solid var(--border-faint); }
+  .spec:last-child { border-right: none; }
+  .sv { font-size: 13px; font-weight: 700; color: var(--text-high); }
+  .sl { font-size: 10px; color: var(--text-faint); margin-top: 1px; }
+
+  .c-foot { display: flex; align-items: center; justify-content: space-between; }
+  .price-block .p-main { font-size: 17px; font-weight: 800; color: var(--text-high); }
+  .price-block .p-main sup { font-size: 11px; font-weight: 600; vertical-align: super; }
+  .price-block .p-note { font-size: 11px; color: var(--text-muted); }
+  .book-btn {
+    display: flex; align-items: center; gap: 5px;
+    padding: 8px 14px; border-radius: var(--radius-sm);
+    background: var(--green); color: #fff; font-size: 12.5px; font-weight: 700;
+    transition: background .15s;
+  }
+  .book-btn:hover { background: var(--green-hover); }
+
+  /* Leaflet custom price pin */
+  .ps-pin-wrap { background: transparent; border: 0; }
+  .ps-pin {
+    background: var(--green); color: #fff; border: 2px solid #fff;
+    padding: 4px 10px; border-radius: 20px; font-size: 11.5px; font-weight: 700;
+    box-shadow: var(--shadow-md); white-space: nowrap; text-align: center;
+    transition: transform .18s, background .18s;
+  }
+  .ps-pin.on { background: var(--text-high); transform: scale(1.1); }
+  .leaflet-popup-content-wrapper { border-radius: 12px; padding: 0; overflow: hidden; }
+  .leaflet-popup-content { margin: 0; width: 260px !important; }
+  .pp-img { height: 110px; overflow: hidden; background: #c9d9cb; }
+  .pp-img img { height: 100%; width: 100%; object-fit: cover; }
+  .pp-body { padding: 10px 12px; }
+  .pp-title { font-size: 13px; font-weight: 700; color: var(--text-high); margin-bottom: 2px; }
+  .pp-loc { font-size: 11.5px; color: var(--text-muted); margin-bottom: 8px; }
+  .pp-foot { display: flex; align-items: center; justify-content: space-between; }
+  .pp-price { font-size: 15px; font-weight: 800; color: var(--green); }
+  .pp-price span { font-size: 11px; color: var(--text-muted); font-weight: 400; }
+  .pp-book { padding: 6px 13px; background: var(--green); color: #fff; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; }
+  .pp-book:hover { background: var(--green-hover); }
+
+  .load-row { display: flex; justify-content: center; margin-top: 24px; }
+  .btn-load { padding: 11px 32px; border-radius: var(--radius-sm); border: 1.5px solid var(--border); font-size: 13.5px; font-weight: 600; color: var(--text-mid); background: var(--white); display: flex; align-items: center; gap: 7px; transition: all .15s; }
+  .btn-load:hover { border-color: var(--green); color: var(--green); background: var(--green-faint); }
+
+  @media (max-width: 860px) { .map-col { display: none !important; } }
+  @media (max-width: 700px) {
+    :root { --sidebar-w: 230px; }
+    .card.featured { grid-column: span 1; }
+    .sb-meta, .sb-divider { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div id="ps-header" data-active="explore"></div>
+
+<!-- ═══════════ CATEGORY STRIP ═══════════ -->
+<div class="cat-strip">
+  <div class="cat-chip active" onclick="setcat(this)">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    All Stays
+  </div>
+  <div class="cat-chip" onclick="setcat(this)">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    Guest Houses
+  </div>
+  <div class="cat-chip" onclick="setcat(this)">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 22V11L12 2l10 9v11"/><path d="M15 22v-8H9v8"/><path d="M2 11h20"/></svg>
+    Farmhouses
+  </div>
+  <div class="cat-chip" onclick="setcat(this)">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4"/></svg>
+    Furnished Apts
+  </div>
+  <div class="cat-chip" onclick="setcat(this)">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 10 2-2m0 0 7-7 7 7M5 8v10a1 1 0 0 0 1 1h4v-5h4v5h4a1 1 0 0 0 1-1V8"/></svg>
+    Cottages
+  </div>
+  <div class="cat-chip" onclick="setcat(this)">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5"/><path d="M2 21c0-4 3.5-7 8-7"/><circle cx="19" cy="6" r="3"/></svg>
+    Beach Huts
+  </div>
+  <div class="cat-chip" onclick="setcat(this)">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 22V6l5-4 5 4 5-4 5 4v16"/><line x1="2" y1="11" x2="22" y2="11"/></svg>
+    Heritage Havelis
+  </div>
+  <div class="cat-chip" onclick="setcat(this)">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3l4 8 5-5 5 15H2L8 3z"/></svg>
+    Mountain Retreats
+  </div>
+  <div class="cat-chip" onclick="setcat(this)">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h20M2 17c2-2 4 0 6 0s4-2 6 0 4 2 6 0"/><path d="M12 2v10"/></svg>
+    Lakeside
+  </div>
+</div>
+
+<div class="page-body">
+
+  <!-- ─── SIDEBAR ─── -->
+  <aside class="sidebar">
+
+    <div class="sb-section-head" onclick="toggleSec(this)">
+      Location
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+    </div>
+    <div class="sb-body" style="max-height:220px">
+      <div class="f-row" onclick="toggleCheck(this)"><div class="f-label"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Islamabad</div><div class="f-right"><span class="f-count">48</span><div class="checkbox on"></div></div></div>
+      <div class="f-row" onclick="toggleCheck(this)"><div class="f-label"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Rawalpindi</div><div class="f-right"><span class="f-count">31</span><div class="checkbox"></div></div></div>
+      <div class="f-row" onclick="toggleCheck(this)"><div class="f-label"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Lahore</div><div class="f-right"><span class="f-count">62</span><div class="checkbox"></div></div></div>
+      <div class="f-row" onclick="toggleCheck(this)"><div class="f-label"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Karachi</div><div class="f-right"><span class="f-count">44</span><div class="checkbox"></div></div></div>
+      <div class="f-row" onclick="toggleCheck(this)"><div class="f-label"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Murree</div><div class="f-right"><span class="f-count">17</span><div class="checkbox"></div></div></div>
+      <div class="f-row" onclick="toggleCheck(this)"><div class="f-label"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Nathiagali</div><div class="f-right"><span class="f-count">9</span><div class="checkbox"></div></div></div>
+    </div>
+    <div class="sb-sep"></div>
+
+    <div class="sb-section-head" onclick="toggleSec(this)">
+      Price per Night (PKR)
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+    </div>
+    <div class="sb-body" style="max-height:130px">
+      <div class="price-inputs">
+        <div class="pi-wrap"><div class="pi-prefix">₨</div><input type="number" value="5000" /></div>
+        <div class="pi-wrap"><div class="pi-prefix">₨</div><input type="number" value="80000" /></div>
+      </div>
+      <div class="range-wrap">
+        <div class="range-track"><div class="range-fill"></div><div class="range-thumb l"></div><div class="range-thumb r"></div></div>
+      </div>
+    </div>
+    <div class="sb-sep"></div>
+
+    <div class="sb-section-head" onclick="toggleSec(this)">
+      Property Type
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+    </div>
+    <div class="sb-body" style="max-height:240px">
+      <div class="f-row" onclick="toggleCheck(this)"><div class="f-label">Guest House</div><div class="f-right"><span class="f-count">48</span><div class="checkbox on"></div></div></div>
+      <div class="f-row" onclick="toggleCheck(this)"><div class="f-label">Farmhouse</div><div class="f-right"><span class="f-count">23</span><div class="checkbox on"></div></div></div>
+      <div class="f-row" onclick="toggleCheck(this)"><div class="f-label">Furnished Apt</div><div class="f-right"><span class="f-count">67</span><div class="checkbox"></div></div></div>
+      <div class="f-row" onclick="toggleCheck(this)"><div class="f-label">Cottage / Chalet</div><div class="f-right"><span class="f-count">12</span><div class="checkbox"></div></div></div>
+      <div class="f-row" onclick="toggleCheck(this)"><div class="f-label">Heritage Haveli</div><div class="f-right"><span class="f-count">6</span><div class="checkbox"></div></div></div>
+      <div class="f-row" onclick="toggleCheck(this)"><div class="f-label">Beach Hut</div><div class="f-right"><span class="f-count">9</span><div class="checkbox"></div></div></div>
+    </div>
+    <div class="sb-sep"></div>
+
+    <div class="sb-section-head" onclick="toggleSec(this)">Bedrooms<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg></div>
+    <div class="sb-body" style="max-height:70px">
+      <div class="pill-row">
+        <div class="pill" onclick="setPill(this)">Any</div>
+        <div class="pill on" onclick="setPill(this)">1+</div>
+        <div class="pill" onclick="setPill(this)">2+</div>
+        <div class="pill" onclick="setPill(this)">3+</div>
+        <div class="pill" onclick="setPill(this)">4+</div>
+      </div>
+    </div>
+    <div class="sb-sep"></div>
+
+    <div class="sb-section-head" onclick="toggleSec(this)">Bathrooms<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg></div>
+    <div class="sb-body" style="max-height:70px">
+      <div class="pill-row">
+        <div class="pill" onclick="setPill(this)">Any</div>
+        <div class="pill on" onclick="setPill(this)">1+</div>
+        <div class="pill" onclick="setPill(this)">2+</div>
+        <div class="pill" onclick="setPill(this)">3+</div>
+      </div>
+    </div>
+    <div class="sb-sep"></div>
+
+    <div class="sb-section-head" onclick="toggleSec(this)">Amenities<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg></div>
+    <div class="sb-body" style="max-height:120px">
+      <div class="amenity-wrap">
+        <div class="a-chip on" onclick="this.classList.toggle('on')">AC</div>
+        <div class="a-chip on" onclick="this.classList.toggle('on')">WiFi</div>
+        <div class="a-chip" onclick="this.classList.toggle('on')">Parking</div>
+        <div class="a-chip" onclick="this.classList.toggle('on')">Pool</div>
+        <div class="a-chip" onclick="this.classList.toggle('on')">Kitchen</div>
+        <div class="a-chip" onclick="this.classList.toggle('on')">BBQ</div>
+        <div class="a-chip" onclick="this.classList.toggle('on')">Generator</div>
+        <div class="a-chip" onclick="this.classList.toggle('on')">CCTV</div>
+        <div class="a-chip" onclick="this.classList.toggle('on')">Garden</div>
+        <div class="a-chip" onclick="this.classList.toggle('on')">TV</div>
+      </div>
+    </div>
+    <div class="sb-sep"></div>
+
+    <div class="sb-section-head" style="cursor:default;">Trust &amp; Verification</div>
+    <div class="tgl-row"><span class="tgl-lbl">CNIC Verified Host</span><div class="tgl on" onclick="this.classList.toggle('on')"></div></div>
+    <div class="tgl-row"><span class="tgl-lbl">PP Inspected Property</span><div class="tgl on" onclick="this.classList.toggle('on')"></div></div>
+    <div class="tgl-row"><span class="tgl-lbl">Superhost Only</span><div class="tgl" onclick="this.classList.toggle('on')"></div></div>
+    <div class="tgl-row"><span class="tgl-lbl">Instant Book</span><div class="tgl" onclick="this.classList.toggle('on')"></div></div>
+    <div class="tgl-row"><span class="tgl-lbl">Pet Friendly</span><div class="tgl" onclick="this.classList.toggle('on')"></div></div>
+    <div style="height:4px;"></div>
+  </aside>
+
+  <div class="sb-footer">
+    <button class="btn-reset" onclick="PS.toast('Filters cleared')">Reset</button>
+    <button class="btn-apply" onclick="PS.toast('Showing 48 stays')">Show 48 Stays</button>
+  </div>
+
+  <!-- ─── MAIN ─── -->
+  <main class="main">
+    <div class="results-header">
+      <div class="results-title">Stays in Islamabad<span id="resultCount">48 properties found</span></div>
+      <div class="results-ctrl">
+        <select class="sort-sel">
+          <option>Sort: Recommended</option>
+          <option>Price: Low to High</option>
+          <option>Price: High to Low</option>
+          <option>Top Rated</option>
+        </select>
+        <button class="map-btn" id="mapBtn" onclick="toggleMap()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l6-3 6 3 6-3v13l-6 3-6-3-6 3V7z"/><line x1="9" y1="4" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="20"/></svg>
+          Show Map
+        </button>
+      </div>
+    </div>
+
+    <div class="active-tags">
+      <div class="a-tag">Islamabad <span class="rm" onclick="removeTag(this.parentElement)">×</span></div>
+      <div class="a-tag">1+ Beds <span class="rm" onclick="removeTag(this.parentElement)">×</span></div>
+      <div class="a-tag">AC <span class="rm" onclick="removeTag(this.parentElement)">×</span></div>
+      <div class="a-tag">WiFi <span class="rm" onclick="removeTag(this.parentElement)">×</span></div>
+      <div class="a-tag">4★+ <span class="rm" onclick="removeTag(this.parentElement)">×</span></div>
+      <div class="a-tag">CNIC Verified <span class="rm" onclick="removeTag(this.parentElement)">×</span></div>
+    </div>
+
+    <div class="listings-wrap">
+      <div class="grid-col">
+        <div class="prop-grid" id="propGrid"></div>
+        <div class="load-row">
+          <button class="btn-load" onclick="PS.toast('Loading more properties…')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+            Load more stays
+          </button>
+        </div>
+      </div>
+
+      <div class="map-col" id="mapCol">
+        <div id="leafletMap"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="/pakstay/assets/pakstay.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+  // ── Render cards from the shared dataset
+  function cardHTML(l, featured){
+    const dist = ['2.4 km from centre','Chak Shehzad','1.1 km from centre','Murree Hills','Heritage','Beachfront','Bahria Town','Nathiagali'];
+    const badgeMap = { 'CNIC Verified':'badge-v','PP Inspected':'badge-i','Superhost':'badge-sh','New Listing':'badge-new' };
+    const badges = (l.badges||[]).map(b => `<span class="badge ${badgeMap[b]||'badge-sh'}">${b}</span>`).join('');
+    return `
+      <div class="card ${featured?'featured':''}" data-id="${l.id}" onclick="openListing(${l.id})">
+        <div class="c-img">
+          <img src="${l.images[0]}" alt="${l.short}" />
+          <div class="badge-row">${badges}</div>
+          <div class="heart" onclick="likeCard(event,this)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          </div>
+          <div class="dist-tag">${dist[l.id-1] || l.city}</div>
+        </div>
+        <div class="c-body">
+          <div class="c-top">
+            <div class="c-title">${l.title}</div>
+            <div class="c-rating"><span class="star">★</span><span class="r-val">${l.rating}</span><span class="r-cnt">(${l.reviews})</span></div>
+          </div>
+          <div class="c-loc">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            ${l.loc}
+          </div>
+          <div class="specs">
+            <div class="spec"><div class="sv">${l.bedrooms}</div><div class="sl">Bedrooms</div></div>
+            <div class="spec"><div class="sv">${l.bathrooms}</div><div class="sl">Bathrooms</div></div>
+            <div class="spec"><div class="sv">${l.size.split(' ')[0]} ${l.size.split(' ')[1][0]}</div><div class="sl">${l.size.split(' ')[1]}</div></div>
+            <div class="spec"><div class="sv">${l.guests}</div><div class="sl">Guests</div></div>
+          </div>
+          <div class="c-foot">
+            <div class="price-block">
+              <div class="p-main"><sup>₨</sup>${l.price.toLocaleString('en-PK')}</div>
+              <div class="p-note">per night · PKR</div>
+            </div>
+            <button class="book-btn" onclick="bookNow(event, ${l.id})">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              Book Now
+            </button>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function renderGrid(){
+    const grid = document.getElementById('propGrid');
+    grid.innerHTML = PS.listings.map((l, i) => cardHTML(l, i===0)).join('');
+  }
+
+  // ── Page actions
+  function bookNow(e, id){
+    e.stopPropagation();
+    location.href = `/pakstay/checkout.html?id=${id}`;
+  }
+  function openListing(id){
+    location.href = `/pakstay/listing.html?id=${id}`;
+  }
+  function likeCard(e, el){
+    e.stopPropagation();
+    el.classList.toggle('on');
+    const svg = el.querySelector('svg');
+    if (el.classList.contains('on')) { svg.setAttribute('fill','#1a6b2a'); svg.setAttribute('stroke','#1a6b2a'); PS.toast('Saved to Wishlist'); }
+    else { svg.setAttribute('fill','none'); svg.setAttribute('stroke','#6B7280'); PS.toast('Removed from Wishlist'); }
+  }
+
+  function setcat(el){
+    document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+    PS.toast('Showing ' + el.textContent.trim());
+  }
+  function toggleSec(h){
+    h.classList.toggle('collapsed');
+    const b = h.nextElementSibling;
+    if (!b || !b.classList.contains('sb-body')) return;
+    b.style.maxHeight = h.classList.contains('collapsed') ? '0' : (b.dataset.mh || b.scrollHeight + 'px');
+  }
+  function toggleCheck(row){ row.querySelector('.checkbox').classList.toggle('on'); }
+  function setPill(el){
+    el.closest('.pill-row').querySelectorAll('.pill').forEach(p => p.classList.remove('on'));
+    el.classList.add('on');
+  }
+  function removeTag(el){
+    el.style.opacity = '0'; el.style.transform = 'scale(.8)'; el.style.transition = 'all .18s';
+    setTimeout(() => el.remove(), 180);
+  }
+
+  // ── Map (real Leaflet + OpenStreetMap)
+  let map = null, markers = [];
+  let mapOn = false;
+
+  function initMap(){
+    if (map) return;
+    map = L.map('leafletMap', { zoomControl: true, scrollWheelZoom: true })
+           .setView([33.6995, 73.0363], 6); // Pakistan-wide
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    PS.listings.forEach((l, i) => {
+      const label = '₨' + (l.price >= 1000 ? Math.round(l.price/1000) + 'K' : l.price);
+      const m = L.marker([l.lat, l.lng], { icon: PS.pricePin(label, i===0) }).addTo(map);
+      m._psListing = l;
+      m.bindPopup(`
+        <div class="pp-img"><img src="${l.images[0]}" alt="${l.short}" /></div>
+        <div class="pp-body">
+          <div class="pp-title">${l.short}</div>
+          <div class="pp-loc">${l.loc}</div>
+          <div class="pp-foot">
+            <div class="pp-price">${PS.fmtPrice(l.price)} <span>/ night</span></div>
+            <button class="pp-book" onclick="location.href='/pakstay/checkout.html?id=${l.id}'">Book Now</button>
+          </div>
+        </div>
+      `);
+      m.on('click', () => selectListing(l.id));
+      markers.push(m);
+    });
+
+    // Fit to all pins
+    const group = L.featureGroup(markers);
+    map.fitBounds(group.getBounds().pad(0.15));
+  }
+
+  function selectListing(id){
+    document.querySelectorAll('.card').forEach(c => c.classList.toggle('selected', Number(c.dataset.id) === id));
+    markers.forEach(m => {
+      const isOn = m._psListing.id === id;
+      const l = m._psListing;
+      const label = '₨' + (l.price >= 1000 ? Math.round(l.price/1000) + 'K' : l.price);
+      m.setIcon(PS.pricePin(label, isOn));
+      if (isOn) { m.openPopup(); map.panTo(m.getLatLng()); }
+    });
+  }
+
+  function toggleMap(){
+    mapOn = !mapOn;
+    document.getElementById('mapCol').classList.toggle('on', mapOn);
+    const b = document.getElementById('mapBtn');
+    b.classList.toggle('on', mapOn);
+    b.innerHTML = mapOn
+      ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l6-3 6 3 6-3v13l-6 3-6-3-6 3V7z"/><line x1="9" y1="4" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="20"/></svg> Hide Map`
+      : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l6-3 6 3 6-3v13l-6 3-6-3-6 3V7z"/><line x1="9" y1="4" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="20"/></svg> Show Map`;
+    if (mapOn) {
+      setTimeout(() => { initMap(); map.invalidateSize(); }, 120);
+    }
+  }
+
+  // ── Init
+  renderGrid();
+  document.querySelectorAll('.sb-body').forEach(b => { b.dataset.mh = b.style.maxHeight; });
+</script>
+</body>
+</html>

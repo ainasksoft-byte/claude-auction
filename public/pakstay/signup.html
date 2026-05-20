@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pak Stay — Create Account</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/pakstay/assets/pakstay.css" />
+<style>
+  .role-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px; }
+  .role-tile {
+    border: 1.5px solid var(--border); border-radius: var(--radius-md); padding: 14px 12px;
+    text-align: center; cursor: pointer; transition: all .15s; background: var(--white);
+  }
+  .role-tile:hover, .role-tile.on { border-color: var(--green); background: var(--green-faint); color: var(--green); }
+  .role-tile svg { margin: 0 auto 6px; opacity: .8; }
+  .role-tile.on svg { opacity: 1; }
+  .role-tile .rt { font-size: 13px; font-weight: 700; }
+  .role-tile .rs { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .role-tile.on .rs { color: var(--green); }
+
+  .strength { display: flex; gap: 4px; margin-top: 6px; }
+  .strength .seg { flex: 1; height: 4px; border-radius: 2px; background: var(--border); transition: background .2s; }
+  .strength .seg.on1 { background: #fbbf24; }
+  .strength .seg.on2 { background: #f59e0b; }
+  .strength .seg.on3 { background: var(--green); }
+
+  .legal { font-size: 11.5px; color: var(--text-muted); line-height: 1.5; margin-top: -4px; margin-bottom: 16px; }
+  .legal a { color: var(--green); font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div class="auth-shell">
+  <aside class="auth-aside">
+    <div class="auth-aside-content">
+      <a class="logo" href="/pakstay/index.html" style="color:#fff;">
+        <div class="logo-mark" style="background:rgba(255,255,255,.15);">PS</div>
+        <div class="logo-stack">
+          <span class="logo-name" style="color:#fff;">Pak Stay</span>
+          <span class="logo-by" style="color:rgba(255,255,255,.75)">by PakistanProperty.com</span>
+        </div>
+      </a>
+    </div>
+
+    <div class="auth-aside-content">
+      <h2>Join Pakistan's friendliest stays community.</h2>
+      <p>Whether you're booking weekend getaways or hosting your own place — we'll get you set up in under a minute.</p>
+      <ul>
+        <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Earn money hosting on your terms</li>
+        <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Free CNIC verification</li>
+        <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Instant payouts after stay</li>
+        <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> No setup fee · pay only on bookings</li>
+      </ul>
+    </div>
+
+    <div class="auth-aside-content" style="font-size:11.5px;opacity:.6;">
+      © 2026 Pak Stay · A PakistanProperty.com product
+    </div>
+  </aside>
+
+  <main class="auth-main">
+    <div class="auth-card">
+      <a class="auth-logo" href="/pakstay/index.html">
+        <div class="logo-mark">PS</div>
+        <div class="logo-stack">
+          <span class="logo-name">Pak Stay</span>
+          <span class="logo-by">by PakistanProperty.com</span>
+        </div>
+      </a>
+
+      <h1 class="auth-title">Create your account</h1>
+      <p class="auth-sub">Pick what you'd like to do first — you can switch any time.</p>
+
+      <div class="role-row">
+        <div class="role-tile on" onclick="pickRole(this)">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg>
+          <div class="rt">Book a stay</div>
+          <div class="rs">I'm travelling</div>
+        </div>
+        <div class="role-tile" onclick="pickRole(this)">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          <div class="rt">Host my place</div>
+          <div class="rs">I have a property</div>
+        </div>
+      </div>
+
+      <form onsubmit="event.preventDefault(); doSignup();">
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">First name</label><input class="form-input" placeholder="Ahmed" required /></div>
+          <div class="form-group"><label class="form-label">Last name</label><input class="form-input" placeholder="Khan" required /></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Phone</label>
+          <input class="form-input" type="tel" placeholder="03xx-xxxxxxx" required />
+          <div class="form-hint">We'll send a free OTP to verify your number.</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input class="form-input" type="email" placeholder="you@example.com" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input class="form-input" type="password" id="pwd" placeholder="At least 8 characters" required onkeyup="updateStrength(this.value)" />
+          <div class="strength" id="strength"><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div></div>
+          <div class="form-hint" id="strengthLbl">Use 8+ characters, with a mix of letters &amp; numbers.</div>
+        </div>
+
+        <div class="legal">
+          By creating an account you agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>, including our CNIC verification process.
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block btn-lg">Create account</button>
+      </form>
+
+      <div class="auth-divider">or sign up with</div>
+
+      <div class="social-row">
+        <button class="social-btn" onclick="PS.toast('Signing up with Google…')">
+          <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20H42v-.05H24v8h11.3c-1.7 4.5-6 7.6-11.3 7.6-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.1 6.1 29.3 4 24 4 13 4 4 13 4 24s9 20 20 20c11.5 0 19.5-8.3 19.5-20 0-1.4-.2-2.7-.4-4z"/></svg>
+          Google
+        </button>
+        <button class="social-btn" onclick="PS.toast('Signing up with Facebook…')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07c0 6 4.39 10.97 10.12 11.88V15.56h-3.05v-3.49h3.05V9.41c0-3.02 1.8-4.68 4.53-4.68 1.31 0 2.69.23 2.69.23v2.97h-1.52c-1.49 0-1.95.93-1.95 1.88v2.26h3.33l-.53 3.49h-2.8v8.39C19.61 23.04 24 18.07 24 12.07z"/></svg>
+          Facebook
+        </button>
+      </div>
+
+      <div class="auth-foot">
+        Already have an account? <a href="/pakstay/login.html">Sign in</a>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="/pakstay/assets/pakstay.js"></script>
+<script>
+  function pickRole(el){
+    document.querySelectorAll('.role-tile').forEach(t => t.classList.remove('on'));
+    el.classList.add('on');
+  }
+  function updateStrength(v){
+    let n = 0;
+    if (v.length >= 8) n++;
+    if (/[A-Z]/.test(v) && /[a-z]/.test(v)) n++;
+    if (/\d/.test(v)) n++;
+    if (/[^A-Za-z0-9]/.test(v)) n++;
+    const segs = document.querySelectorAll('#strength .seg');
+    const lbl  = document.getElementById('strengthLbl');
+    segs.forEach((s, i) => {
+      s.classList.remove('on1','on2','on3');
+      if (i < n) s.classList.add(n <= 1 ? 'on1' : n === 2 ? 'on2' : 'on3');
+    });
+    lbl.textContent = n === 0 ? 'Use 8+ characters, with a mix of letters & numbers.'
+                    : n === 1 ? 'Weak — add a number or capital letter.'
+                    : n === 2 ? 'Okay — add a symbol for stronger security.'
+                    : n === 3 ? 'Good password.'
+                              : 'Strong password.';
+  }
+  function doSignup(){
+    PS.toast('Account created! Verifying number…');
+    setTimeout(() => location.href = '/pakstay/dashboard.html', 900);
+  }
+</script>
+</body>
+</html>
