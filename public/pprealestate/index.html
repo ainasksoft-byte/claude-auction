@@ -721,34 +721,50 @@ function selectListing(id, navigate){
 // POI type → emoji
 const poiEmoji = { school:'🎓', hospital:'🏥', mosque:'🕌', park:'🌳', market:'🛒', bank:'🏦', restaurant:'🍽️', transport:'🚌' };
 
-let poiLayers = [];
-function clearNearby(){
+function haversineKm(lat1, lng1, lat2, lng2){
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 +
+            Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+function fmtDist(km){
+  return km < 1 ? Math.round(km * 1000) + ' m' : km.toFixed(1) + ' km';
+}
+
+let poiLayers = [], pinnedId = null;
+
+function clearNearby(force){
+  if (!force && pinnedId !== null) return;
+  pinnedId = null;
   poiLayers.forEach(l => map.removeLayer(l));
   poiLayers = [];
 }
-function showNearby(listing){
-  clearNearby();
+function showNearby(listing, pin){
+  clearNearby(true);
   if (!listing.nearby) return;
+  if (pin) pinnedId = listing.id;
   listing.nearby.forEach(poi => {
+    const dist = haversineKm(listing.lat, listing.lng, poi.lat, poi.lng);
+    const distStr = fmtDist(dist);
     const icon = L.divIcon({
       className: 'poi-wrap',
       html: `<div class="poi-pin poi-${poi.type}"><span class="poi-icon">${poiEmoji[poi.type]||'📍'}</span>${poi.name}</div>`,
       iconAnchor: [0, 12]
     });
     const m = L.marker([poi.lat, poi.lng], { icon, zIndexOffset: -100 }).addTo(map);
-    m.bindTooltip(`<b>${poi.name}</b><br><span style="color:#6B7280">${poi.dist} away</span>`, { direction:'top', offset:[0,-8], className:'leaflet-tooltip' });
+    m.bindTooltip(`<b>${poi.name}</b><br><span style="color:#6B7280">${distStr} away</span>`, { direction:'top', offset:[0,-8] });
 
-    // dashed line from property to POI
     const line = L.polyline([[listing.lat, listing.lng],[poi.lat, poi.lng]], {
       color: '#1a6b2a', weight: 1.5, dashArray: '5,5', opacity: .55
     }).addTo(map);
 
-    // distance label at midpoint
     const midLat = (listing.lat + poi.lat) / 2;
     const midLng = (listing.lng + poi.lng) / 2;
     const lbl = L.divIcon({
       className: '',
-      html: `<div class="poi-dist-label">${poi.dist}</div>`,
+      html: `<div class="poi-dist-label">${distStr}</div>`,
       iconAnchor: [20, 8]
     });
     const lblMarker = L.marker([midLat, midLng], { icon: lbl, interactive: false, zIndexOffset: -200 }).addTo(map);
@@ -776,15 +792,18 @@ function initMap(){
       opacity: 1,
       sticky: false
     });
-    m.on('mouseover', () => showNearby(l));
-    m.on('mouseout',  () => clearNearby());
-    m.on('click', () => selectListing(l.id, false));
+    m.on('mouseover', () => { if (pinnedId === null) showNearby(l, false); });
+    m.on('mouseout',  () => clearNearby(false));
+    m.on('click', (e) => { L.DomEvent.stopPropagation(e); showNearby(l, true); selectListing(l.id, false); });
     m.on('dblclick', () => location.href = '/pprealestate/listing.html?id=' + l.id);
     markers.push(m);
   });
 
   const group = L.featureGroup(markers);
   map.fitBounds(group.getBounds().pad(0.18));
+
+  // click on empty map space → unpin nearby
+  map.on('click', () => clearNearby(true));
 }
 
 function toggleMap(){
