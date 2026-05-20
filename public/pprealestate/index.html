@@ -290,9 +290,9 @@
   .poi-restaurant{ background: #b45309; color: #fff; }
   .poi-transport { background: #7c3aed; color: #fff; }
   .poi-dist-label {
-    background: rgba(17,24,39,.78); color: #fff; backdrop-filter: blur(4px);
-    padding: 2px 7px; border-radius: 4px; font-size: 9.5px; font-weight: 700;
-    white-space: nowrap;
+    background: rgba(17,24,39,.82); color: #fff; backdrop-filter: blur(4px);
+    padding: 2px 8px; border-radius: 4px; font-size: 9.5px; font-weight: 700;
+    white-space: nowrap; border-left: 3px solid #1a6b2a;
   }
 
   .load-row { display: flex; justify-content: center; margin-top: 24px; }
@@ -718,59 +718,130 @@ function selectListing(id, navigate){
   if (navigate) setTimeout(() => location.href = '/pprealestate/listing.html?id=' + id, 260);
 }
 
-// POI type → emoji
-const poiEmoji = { school:'🎓', hospital:'🏥', mosque:'🕌', park:'🌳', market:'🛒', bank:'🏦', restaurant:'🍽️', transport:'🚌' };
+// ─── NEARBY AMENITIES — live Overpass + OSRM routing ───
+const poiEmoji  = { school:'🎓', hospital:'🏥', mosque:'🕌', park:'🌳', market:'🛒', bank:'🏦', restaurant:'🍽️', transport:'🚌', pharmacy:'💊', cafe:'☕' };
+const poiColor  = { school:'#2563eb', hospital:'#dc2626', mosque:'#059669', park:'#16a34a', market:'#d97706', bank:'#1e40af', restaurant:'#b45309', transport:'#7c3aed', pharmacy:'#0891b2', cafe:'#92400e' };
 
-function haversineKm(lat1, lng1, lat2, lng2){
-  const R = 6371;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLng = (lng2 - lng1) * Math.PI / 180;
-  const a = Math.sin(dLat/2)**2 +
-            Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLng/2)**2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+function haversineKm(la1,ln1,la2,ln2){
+  const R=6371, dL=(la2-la1)*Math.PI/180, dN=(ln2-ln1)*Math.PI/180;
+  const a=Math.sin(dL/2)**2+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dN/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
-function fmtDist(km){
-  return km < 1 ? Math.round(km * 1000) + ' m' : km.toFixed(1) + ' km';
+function fmtDist(km){ return km<1 ? Math.round(km*1000)+' m' : km.toFixed(1)+' km'; }
+
+function osmPoiType(tags){
+  const a=tags.amenity, l=tags.leisure, s=tags.shop, h=tags.highway;
+  if(['school','kindergarten','college','university'].includes(a)) return 'school';
+  if(['hospital','clinic'].includes(a))   return 'hospital';
+  if(a==='pharmacy')                       return 'pharmacy';
+  if(a==='place_of_worship')              return 'mosque';
+  if(['bank','atm'].includes(a))          return 'bank';
+  if(['restaurant','fast_food'].includes(a)) return 'restaurant';
+  if(a==='cafe')                           return 'cafe';
+  if(['park','garden'].includes(l))       return 'park';
+  if(['supermarket','grocery','mall'].includes(s)) return 'market';
+  if(h==='bus_stop')                       return 'transport';
+  return null;
 }
 
-let poiLayers = [], pinnedId = null;
+async function fetchNearbyFromOSM(lat, lng){
+  const q=`[out:json][timeout:20];(
+    node["amenity"~"^(school|hospital|clinic|pharmacy|place_of_worship|bank|restaurant|fast_food|cafe)$"](around:1200,${lat},${lng});
+    node["leisure"~"^(park|garden)$"](around:1200,${lat},${lng});
+    node["shop"~"^(supermarket|grocery|mall)$"](around:1200,${lat},${lng});
+    node["highway"="bus_stop"](around:900,${lat},${lng});
+  );out 50;`;
+  const res = await fetch('https://overpass-api.de/api/interpreter?data='+encodeURIComponent(q));
+  const data = await res.json();
+  const seen={}, pois=[];
+  for(const n of (data.elements||[])){
+    const type = osmPoiType(n.tags||{});
+    if(!type||seen[type]) continue;
+    const name = n.tags.name || n.tags['name:en'] || n.tags['name:ur'] || (type[0].toUpperCase()+type.slice(1));
+    pois.push({ type, name, lat:n.lat, lng:n.lon, dist:haversineKm(lat,lng,n.lat,n.lon) });
+    seen[type]=true;
+    if(pois.length>=6) break;
+  }
+  return pois.sort((a,b)=>a.dist-b.dist);
+}
+
+async function fetchOSRMRoute(fLat,fLng,tLat,tLng){
+  try{
+    const url=`https://router.project-osrm.org/route/v1/driving/${fLng},${fLat};${tLng},${tLat}?overview=full&geometries=geojson`;
+    const r=await fetch(url);
+    const d=await r.json();
+    if(d.code!=='Ok') return null;
+    return {
+      coords: d.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]),
+      distKm: d.routes[0].distance/1000
+    };
+  }catch(e){ return null; }
+}
+
+let poiLayers=[], pinnedId=null;
 
 function clearNearby(force){
-  if (!force && pinnedId !== null) return;
-  pinnedId = null;
-  poiLayers.forEach(l => map.removeLayer(l));
-  poiLayers = [];
+  if(!force && pinnedId!==null) return;
+  pinnedId=null;
+  poiLayers.forEach(l=>map.removeLayer(l));
+  poiLayers=[];
 }
-function showNearby(listing, pin){
+
+async function showNearby(listing, pin){
   clearNearby(true);
-  if (!listing.nearby) return;
-  if (pin) pinnedId = listing.id;
-  listing.nearby.forEach(poi => {
-    const dist = haversineKm(listing.lat, listing.lng, poi.lat, poi.lng);
-    const distStr = fmtDist(dist);
-    const icon = L.divIcon({
-      className: 'poi-wrap',
-      html: `<div class="poi-pin poi-${poi.type}"><span class="poi-icon">${poiEmoji[poi.type]||'📍'}</span>${poi.name}</div>`,
-      iconAnchor: [0, 12]
-    });
-    const m = L.marker([poi.lat, poi.lng], { icon, zIndexOffset: -100 }).addTo(map);
-    m.bindTooltip(`<b>${poi.name}</b><br><span style="color:#6B7280">${distStr} away</span>`, { direction:'top', offset:[0,-8] });
+  if(pin) pinnedId=listing.id;
 
-    const line = L.polyline([[listing.lat, listing.lng],[poi.lat, poi.lng]], {
-      color: '#1a6b2a', weight: 1.5, dashArray: '5,5', opacity: .55
-    }).addTo(map);
-
-    const midLat = (listing.lat + poi.lat) / 2;
-    const midLng = (listing.lng + poi.lng) / 2;
-    const lbl = L.divIcon({
-      className: '',
-      html: `<div class="poi-dist-label">${distStr}</div>`,
-      iconAnchor: [20, 8]
-    });
-    const lblMarker = L.marker([midLat, midLng], { icon: lbl, interactive: false, zIndexOffset: -200 }).addTo(map);
-
-    poiLayers.push(m, line, lblMarker);
+  // loading bubble
+  const loadIcon=L.divIcon({ className:'', iconAnchor:[56,36],
+    html:`<div style="background:#fff;border-radius:20px;padding:6px 14px;font-size:12px;font-weight:700;color:#1a6b2a;box-shadow:0 2px 10px rgba(0,0,0,.18);white-space:nowrap">
+      <svg style="vertical-align:-3px;margin-right:4px" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Finding nearby…</div>`
   });
+  const loadM=L.marker([listing.lat,listing.lng],{icon:loadIcon,interactive:false,zIndexOffset:600}).addTo(map);
+  poiLayers.push(loadM);
+
+  try {
+    const pois = await fetchNearbyFromOSM(listing.lat, listing.lng);
+    map.removeLayer(loadM);
+    poiLayers=poiLayers.filter(x=>x!==loadM);
+
+    // fetch all routes in parallel
+    const routes = await Promise.all(pois.map(p=>fetchOSRMRoute(listing.lat,listing.lng,p.lat,p.lng)));
+
+    pois.forEach((poi,i)=>{
+      const route=routes[i];
+      const distStr=route ? fmtDist(route.distKm) : fmtDist(poi.dist);
+      const color=poiColor[poi.type]||'#1a6b2a';
+
+      // route polyline (or fallback dashed straight line)
+      const roadLine = route
+        ? L.polyline(route.coords,{color,weight:3,opacity:.75,lineJoin:'round'})
+        : L.polyline([[listing.lat,listing.lng],[poi.lat,poi.lng]],{color,weight:2,dashArray:'6,4',opacity:.6});
+      roadLine.addTo(map);
+      poiLayers.push(roadLine);
+
+      // distance label at route midpoint
+      const mid = route ? route.coords[Math.floor(route.coords.length/2)] : [(listing.lat+poi.lat)/2,(listing.lng+poi.lng)/2];
+      const lblIcon=L.divIcon({ className:'', iconAnchor:[22,9],
+        html:`<div class="poi-dist-label" style="border-left:3px solid ${color}">${distStr}</div>`
+      });
+      const lblM=L.marker(mid,{icon:lblIcon,interactive:false,zIndexOffset:-200}).addTo(map);
+      poiLayers.push(lblM);
+
+      // POI marker
+      const pinIcon=L.divIcon({ className:'poi-wrap', iconAnchor:[0,12],
+        html:`<div class="poi-pin poi-${poi.type}"><span class="poi-icon">${poiEmoji[poi.type]||'📍'}</span>${poi.name}</div>`
+      });
+      const pm=L.marker([poi.lat,poi.lng],{icon:pinIcon,zIndexOffset:100}).addTo(map);
+      pm.bindTooltip(`<b>${poi.name}</b><br><span style="color:#6B7280;font-size:11px">${distStr} by road</span>`,{direction:'top',offset:[0,-8]});
+      poiLayers.push(pm);
+    });
+
+  } catch(e){
+    map.removeLayer(loadM);
+    poiLayers=poiLayers.filter(x=>x!==loadM);
+    PP.toast('Could not load nearby amenities');
+  }
 }
 
 function initMap(){
@@ -792,8 +863,6 @@ function initMap(){
       opacity: 1,
       sticky: false
     });
-    m.on('mouseover', () => { if (pinnedId === null) showNearby(l, false); });
-    m.on('mouseout',  () => clearNearby(false));
     m.on('click', (e) => { L.DomEvent.stopPropagation(e); showNearby(l, true); selectListing(l.id, false); });
     m.on('dblclick', () => location.href = '/pprealestate/listing.html?id=' + l.id);
     markers.push(m);
