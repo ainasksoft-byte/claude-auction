@@ -1,0 +1,2146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="theme-color" content="#1a6b2a" />
+  <title>PakistanProperty — App</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="/pprealestate/assets/pp.js"></script>
+
+  <style>
+    /* ===== DESIGN TOKENS ===== */
+    :root {
+      --green:        #1a6b2a;
+      --green-hover:  #155522;
+      --green-faint:  #f4faf5;
+      --green-light:  #edf5ef;
+      --text-high:    #111827;
+      --text-mid:     #374151;
+      --text-muted:   #6B7280;
+      --text-faint:   #9CA3AF;
+      --white:        #fff;
+      --bg:           #F9FAFB;
+      --border:       #E5E7EB;
+      --border-faint: #F3F4F6;
+      --radius-lg:    14px;
+      --radius-md:    10px;
+      --radius-sm:    8px;
+      --nav-h:        62px;
+      --shadow-sm:    0 1px 3px rgba(0,0,0,.07);
+      --shadow-md:    0 4px 14px rgba(0,0,0,.10);
+      --shadow-lg:    0 8px 30px rgba(0,0,0,.14);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 14px;
+      color: var(--text-high);
+      background: var(--bg);
+      -webkit-font-smoothing: antialiased;
+    }
+    a { text-decoration: none; color: inherit; }
+    button { cursor: pointer; border: none; background: none; font-family: inherit; }
+    input, select, textarea { font-family: inherit; }
+    img { display: block; max-width: 100%; }
+
+    /* ===== APP SHELL ===== */
+    #app {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ===== SCREEN CONTAINER ===== */
+    #screens {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .screen {
+      position: absolute;
+      inset: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      background: var(--bg);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s ease;
+    }
+    .screen.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+    /* Map screen no scroll */
+    #screen-map {
+      overflow: hidden;
+    }
+
+    /* Hide scrollbars globally */
+    * { scrollbar-width: none; -ms-overflow-style: none; }
+    *::-webkit-scrollbar { display: none; }
+
+    /* ===== BOTTOM NAV ===== */
+    #bottom-nav {
+      flex-shrink: 0;
+      height: calc(var(--nav-h) + env(safe-area-inset-bottom));
+      padding-bottom: env(safe-area-inset-bottom);
+      background: var(--white);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: stretch;
+      z-index: 200;
+    }
+    .nav-tab {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      padding: 6px 4px 4px;
+      color: var(--text-faint);
+      transition: color 0.15s;
+      position: relative;
+    }
+    .nav-tab.active { color: var(--green); }
+    .nav-tab svg { transition: transform 0.15s; }
+    .nav-tab.active svg { transform: scale(1.08); }
+    .nav-tab span {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+    .nav-tab .nav-badge {
+      position: absolute;
+      top: 6px;
+      right: calc(50% - 14px);
+      min-width: 16px;
+      height: 16px;
+      background: #EF4444;
+      border-radius: 8px;
+      font-size: 9px;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 4px;
+    }
+
+    /* ===== COMMON COMPONENTS ===== */
+    .section-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--text-high);
+      margin-bottom: 12px;
+    }
+    .section-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .section-row a {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--green);
+    }
+    .h-scroll {
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .h-scroll::-webkit-scrollbar { display: none; }
+
+    /* ===== PROPERTY CARD — FEATURED (horizontal scroll) ===== */
+    .feat-card {
+      flex-shrink: 0;
+      width: 290px;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+      transition: box-shadow 0.2s, transform 0.2s;
+    }
+    .feat-card:active { transform: scale(0.98); box-shadow: var(--shadow-md); }
+    .feat-card-img {
+      width: 100%;
+      height: 210px;
+      object-fit: cover;
+      display: block;
+      background: var(--border-faint);
+    }
+    .feat-card-body {
+      padding: 12px 14px 14px;
+    }
+    .feat-card-price {
+      font-size: 17px;
+      font-weight: 900;
+      color: var(--green);
+      margin-bottom: 3px;
+    }
+    .feat-card-price span {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+    .feat-card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-high);
+      margin-bottom: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .feat-card-loc {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .feat-card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .feat-card-specs {
+      display: flex;
+      gap: 10px;
+    }
+    .feat-card-spec {
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .feat-card-btn {
+      padding: 6px 14px;
+      background: var(--green);
+      color: var(--white);
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      transition: background 0.15s;
+    }
+    .feat-card-btn:active { background: var(--green-hover); }
+
+    /* ===== CITY TILES ===== */
+    .city-tile {
+      flex-shrink: 0;
+      width: 120px;
+      height: 90px;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      position: relative;
+      cursor: pointer;
+    }
+    .city-tile img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .city-tile-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(0,0,0,.65) 0%, rgba(0,0,0,.1) 60%);
+      display: flex;
+      align-items: flex-end;
+      padding: 8px;
+    }
+    .city-tile-name {
+      font-size: 12px;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1;
+    }
+
+    /* ===== COMPACT LIST CARD ===== */
+    .list-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      display: flex;
+      gap: 0;
+      transition: box-shadow 0.2s;
+      cursor: pointer;
+    }
+    .list-card:active { box-shadow: var(--shadow-md); }
+    .list-card-img {
+      width: 130px;
+      flex-shrink: 0;
+      object-fit: cover;
+      display: block;
+    }
+    .list-card-body {
+      flex: 1;
+      padding: 11px 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-width: 0;
+    }
+    .list-card-price {
+      font-size: 15px;
+      font-weight: 900;
+      color: var(--green);
+    }
+    .list-card-price span {
+      font-size: 11px;
+      font-weight: 400;
+      color: var(--text-muted);
+    }
+    .list-card-title {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--text-high);
+      margin: 2px 0;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+    .list-card-loc {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+    .list-card-specs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .list-card-spec {
+      font-size: 10.5px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+    .list-card-heart {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 28px;
+      height: 28px;
+      background: rgba(255,255,255,0.9);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* Badge chips */
+    .badge-chip {
+      font-size: 9.5px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      background: var(--green-faint);
+      color: var(--green);
+      border: 1px solid rgba(26,107,42,.18);
+      white-space: nowrap;
+    }
+
+    /* ===== HOME SCREEN ===== */
+    #screen-home {
+      background: var(--bg);
+    }
+    .home-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 16px 12px;
+      background: var(--white);
+    }
+    .home-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .home-logo-mark {
+      width: 32px;
+      height: 32px;
+      border-radius: 9px;
+      background: var(--green);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .home-logo-name {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--green);
+      letter-spacing: -0.3px;
+    }
+    .home-topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .topbar-icon-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-mid);
+      position: relative;
+    }
+    .topbar-notif-dot {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 8px;
+      height: 8px;
+      background: #EF4444;
+      border-radius: 50%;
+      border: 1.5px solid var(--white);
+    }
+    .topbar-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--green-light);
+      border: 2px solid var(--green);
+      color: var(--green);
+      font-size: 13px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .home-search-bar {
+      margin: 12px 16px 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--white);
+      border: 1.5px solid var(--border);
+      border-radius: 50px;
+      padding: 12px 16px;
+      box-shadow: var(--shadow-sm);
+      cursor: pointer;
+    }
+    .home-search-bar span {
+      flex: 1;
+      font-size: 13.5px;
+      color: var(--text-faint);
+    }
+    .home-search-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--green);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .category-chips {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 14px 16px 0;
+      -webkit-overflow-scrolling: touch;
+    }
+    .cat-chip {
+      flex-shrink: 0;
+      padding: 7px 16px;
+      border-radius: 50px;
+      font-size: 12.5px;
+      font-weight: 600;
+      border: 1.5px solid var(--border);
+      background: var(--white);
+      color: var(--text-mid);
+      transition: all 0.15s;
+    }
+    .cat-chip.active {
+      background: var(--green);
+      border-color: var(--green);
+      color: #fff;
+    }
+
+    .home-section {
+      padding: 20px 16px 0;
+    }
+    .home-section:last-child {
+      padding-bottom: 20px;
+    }
+
+    /* ===== SEARCH SCREEN ===== */
+    #screen-search {
+      background: var(--bg);
+    }
+    .search-sticky {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 16px;
+    }
+    .search-bar-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .search-input-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: 50px;
+      padding: 10px 14px;
+    }
+    .search-input-wrap:focus-within {
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px rgba(26,107,42,.10);
+    }
+    .search-input-wrap input {
+      flex: 1;
+      border: none;
+      background: transparent;
+      font-size: 13.5px;
+      color: var(--text-high);
+      outline: none;
+    }
+    .search-input-wrap input::placeholder { color: var(--text-faint); }
+    .filter-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: var(--green);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: var(--shadow-sm);
+    }
+    .filter-pills-row {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-top: 10px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .filter-pill {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 10px 5px 12px;
+      background: var(--green-faint);
+      border: 1px solid rgba(26,107,42,.25);
+      border-radius: 50px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--green);
+    }
+    .filter-pill button {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: rgba(26,107,42,.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: var(--green);
+    }
+
+    .search-results-meta {
+      padding: 12px 16px 8px;
+      font-size: 12.5px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+    .search-results-meta strong {
+      color: var(--text-high);
+      font-weight: 700;
+    }
+
+    .search-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 0 16px 20px;
+    }
+    .search-list .list-card {
+      height: 130px;
+    }
+    .search-list .list-card-img {
+      height: 130px;
+    }
+
+    .load-more-btn {
+      display: block;
+      width: calc(100% - 32px);
+      margin: 4px 16px 20px;
+      padding: 13px;
+      background: var(--white);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--text-mid);
+      text-align: center;
+      transition: all 0.15s;
+    }
+    .load-more-btn:active { border-color: var(--green); color: var(--green); }
+
+    /* ===== MAP SCREEN ===== */
+    #screen-map {
+      position: relative;
+      background: #e8ede4;
+    }
+    #app-map {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+    }
+    .map-float-bar {
+      position: absolute;
+      top: 14px;
+      left: 16px;
+      right: 16px;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--white);
+      border-radius: 50px;
+      padding: 11px 14px;
+      box-shadow: var(--shadow-lg);
+      border: 1px solid var(--border);
+    }
+    .map-float-bar input {
+      flex: 1;
+      border: none;
+      background: transparent;
+      font-size: 13.5px;
+      color: var(--text-high);
+      outline: none;
+    }
+    .map-float-bar input::placeholder { color: var(--text-faint); }
+    .map-popup-card {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 10;
+      background: var(--white);
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+      box-shadow: 0 -4px 24px rgba(0,0,0,.14);
+      padding: 16px;
+      transform: translateY(100%);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .map-popup-card.open {
+      transform: translateY(0);
+    }
+    .map-popup-inner {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .map-popup-img {
+      width: 80px;
+      height: 80px;
+      border-radius: var(--radius-md);
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+    .map-popup-body {
+      flex: 1;
+      min-width: 0;
+    }
+    .map-popup-price {
+      font-size: 16px;
+      font-weight: 900;
+      color: var(--green);
+      margin-bottom: 2px;
+    }
+    .map-popup-title {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--text-high);
+      margin-bottom: 2px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+    .map-popup-loc {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+    .map-popup-btns {
+      display: flex;
+      gap: 8px;
+    }
+    .map-popup-btn {
+      flex: 1;
+      padding: 7px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 700;
+      text-align: center;
+    }
+    .map-popup-btn.primary {
+      background: var(--green);
+      color: var(--white);
+    }
+    .map-popup-btn.outline {
+      background: var(--white);
+      border: 1.5px solid var(--border);
+      color: var(--text-mid);
+    }
+    .map-popup-close {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+    }
+
+    /* ===== SAVED SCREEN ===== */
+    #screen-saved {
+      background: var(--bg);
+    }
+    .saved-header {
+      padding: 20px 16px 12px;
+      font-size: 20px;
+      font-weight: 900;
+      color: var(--text-high);
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+    }
+    .saved-header span {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-left: 6px;
+    }
+
+    /* ===== PROFILE SCREEN ===== */
+    #screen-profile {
+      background: var(--bg);
+    }
+    .profile-header {
+      background: linear-gradient(135deg, var(--green) 0%, #0e4d1b 100%);
+      padding: 28px 20px 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    .profile-avatar {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      border: 3px solid rgba(255,255,255,0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      font-weight: 900;
+      color: #fff;
+    }
+    .profile-name {
+      font-size: 19px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 2px;
+    }
+    .profile-verified {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(255,255,255,0.18);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 20px;
+      padding: 4px 10px;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.95);
+    }
+    .profile-stats {
+      display: flex;
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+    }
+    .profile-stat {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px 8px;
+      border-right: 1px solid var(--border);
+      gap: 2px;
+    }
+    .profile-stat:last-child { border-right: none; }
+    .profile-stat-num {
+      font-size: 22px;
+      font-weight: 900;
+      color: var(--green);
+    }
+    .profile-stat-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .profile-menu {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      margin: 16px;
+      overflow: hidden;
+    }
+    .profile-menu-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 15px 16px;
+      border-bottom: 1px solid var(--border-faint);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .profile-menu-item:last-child { border-bottom: none; }
+    .profile-menu-item:active { background: var(--bg); }
+    .profile-menu-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .profile-menu-label {
+      flex: 1;
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--text-high);
+    }
+    .profile-menu-sub {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      margin-top: 1px;
+    }
+    .menu-chevron { color: var(--text-faint); }
+
+    /* ===== DETAIL OVERLAY ===== */
+    #detail-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 500;
+      pointer-events: none;
+    }
+    #detail-overlay.open {
+      pointer-events: all;
+    }
+    #detail-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    #detail-overlay.open #detail-backdrop {
+      opacity: 1;
+    }
+    #detail-sheet {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 100vh;
+      background: var(--white);
+      border-radius: 20px 20px 0 0;
+      transform: translateY(100%);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    #detail-overlay.open #detail-sheet {
+      transform: translateY(0);
+    }
+
+    .detail-gallery {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 0;
+    }
+    .detail-gallery img {
+      flex-shrink: 0;
+      height: 250px;
+      width: auto;
+      min-width: 300px;
+      object-fit: cover;
+      display: block;
+    }
+    .detail-gallery img:first-child {
+      border-radius: 20px 20px 0 0;
+    }
+
+    .detail-body {
+      padding: 16px 16px 120px;
+    }
+    .detail-title {
+      font-size: 18px;
+      font-weight: 900;
+      color: var(--text-high);
+      margin-bottom: 4px;
+      line-height: 1.25;
+    }
+    .detail-price-row {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+    .detail-price {
+      font-size: 22px;
+      font-weight: 900;
+      color: var(--green);
+    }
+    .detail-price-suf {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+    .detail-loc {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12.5px;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+    }
+
+    .detail-specs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+    .detail-spec-pill {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 7px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-mid);
+    }
+
+    .detail-agent {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      margin-bottom: 18px;
+    }
+    .detail-agent-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--green-light);
+      border: 2px solid var(--green);
+      color: var(--green);
+      font-size: 16px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .detail-agent-info { flex: 1; min-width: 0; }
+    .detail-agent-name {
+      font-size: 13.5px;
+      font-weight: 800;
+      color: var(--text-high);
+    }
+    .detail-agent-agency {
+      font-size: 11.5px;
+      color: var(--text-muted);
+    }
+    .detail-agent-rating {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-mid);
+    }
+    .detail-agent-btns {
+      display: flex;
+      gap: 8px;
+    }
+    .agent-call-btn, .agent-wa-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .agent-call-btn { background: var(--green-faint); border: 1px solid rgba(26,107,42,.2); color: var(--green); }
+    .agent-wa-btn { background: #dcfce7; border: 1px solid rgba(22,163,74,.2); color: #16a34a; }
+
+    .detail-section-title {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--text-high);
+      margin-bottom: 8px;
+    }
+    .detail-desc {
+      font-size: 13px;
+      color: var(--text-mid);
+      line-height: 1.6;
+      margin-bottom: 18px;
+      display: -webkit-box;
+      -webkit-line-clamp: 4;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .detail-amenities {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+    .amenity-chip {
+      padding: 5px 11px;
+      background: var(--green-faint);
+      border: 1px solid rgba(26,107,42,.2);
+      border-radius: 20px;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--green);
+    }
+
+    .detail-close-btn {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.9);
+      backdrop-filter: blur(4px);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-mid);
+      box-shadow: var(--shadow-sm);
+      z-index: 10;
+    }
+
+    .detail-sticky-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--white);
+      border-top: 1px solid var(--border);
+      padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      z-index: 10;
+      transform: translateY(100%);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    #detail-overlay.open .detail-sticky-bar {
+      transform: translateY(0);
+    }
+    .detail-sticky-price {
+      font-size: 18px;
+      font-weight: 900;
+      color: var(--green);
+    }
+    .detail-sticky-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .detail-book-btn {
+      flex: 1;
+      padding: 13px;
+      background: var(--green);
+      color: var(--white);
+      border-radius: var(--radius-lg);
+      font-size: 14px;
+      font-weight: 800;
+      text-align: center;
+      transition: background 0.15s;
+    }
+    .detail-book-btn:active { background: var(--green-hover); }
+
+    /* ===== FILTER SHEET ===== */
+    #filter-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 500;
+      pointer-events: none;
+    }
+    #filter-overlay.open { pointer-events: all; }
+    #filter-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    #filter-overlay.open #filter-backdrop { opacity: 1; }
+    #filter-sheet {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--white);
+      border-radius: 20px 20px 0 0;
+      transform: translateY(100%);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      padding-bottom: env(safe-area-inset-bottom);
+      max-height: 90vh;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    #filter-overlay.open #filter-sheet { transform: translateY(0); }
+
+    .filter-handle {
+      width: 36px;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      margin: 12px auto 8px;
+    }
+    .filter-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 16px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .filter-header-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--text-high);
+    }
+    .filter-reset {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    .filter-section {
+      padding: 16px 16px 0;
+    }
+    .filter-section-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 10px;
+    }
+    .filter-pill-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .filter-pill-opt {
+      padding: 8px 16px;
+      border-radius: 50px;
+      border: 1.5px solid var(--border);
+      background: var(--white);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-mid);
+      transition: all 0.15s;
+    }
+    .filter-pill-opt.active {
+      background: var(--green);
+      border-color: var(--green);
+      color: #fff;
+    }
+    .filter-price-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .filter-price-input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      color: var(--text-high);
+      outline: none;
+      background: var(--white);
+    }
+    .filter-price-input:focus {
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px rgba(26,107,42,.10);
+    }
+    .filter-divider {
+      height: 1px;
+      background: var(--border-faint);
+      margin: 16px 0 0;
+    }
+    .filter-footer {
+      padding: 14px 16px;
+      background: var(--white);
+    }
+    .filter-apply-btn {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      background: var(--green);
+      color: var(--white);
+      border-radius: var(--radius-lg);
+      font-size: 15px;
+      font-weight: 800;
+      text-align: center;
+      transition: background 0.15s;
+    }
+    .filter-apply-btn:active { background: var(--green-hover); }
+
+    /* ===== NEWLY LISTED SECTION ===== */
+    .newly-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .newly-card {
+      display: flex;
+      gap: 12px;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      cursor: pointer;
+      transition: box-shadow 0.2s;
+    }
+    .newly-card:active { box-shadow: var(--shadow-md); }
+    .newly-card-img {
+      width: 100px;
+      height: 90px;
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+    .newly-card-body {
+      flex: 1;
+      padding: 10px 12px 10px 0;
+      min-width: 0;
+    }
+    .newly-card-price {
+      font-size: 14px;
+      font-weight: 900;
+      color: var(--green);
+      margin-bottom: 2px;
+    }
+    .newly-card-title {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--text-high);
+      margin-bottom: 2px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+    .newly-card-loc {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* ===== SAVED CARDS ===== */
+    .saved-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 14px 16px;
+    }
+    .saved-card-wrap {
+      position: relative;
+    }
+    .saved-heart {
+      position: absolute;
+      top: 10px;
+      right: 8px;
+      z-index: 2;
+      color: #EF4444;
+    }
+
+    /* ===== LEAFLET OVERRIDES ===== */
+    .leaflet-control-attribution { display: none; }
+    .leaflet-control-zoom {
+      border: 1px solid var(--border) !important;
+      border-radius: var(--radius-md) !important;
+      box-shadow: var(--shadow-md) !important;
+    }
+    .leaflet-control-zoom a {
+      color: var(--text-mid) !important;
+      font-size: 16px !important;
+      line-height: 28px !important;
+    }
+
+    /* ===== TOAST ===== */
+    #toastEl {
+      position: fixed;
+      bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 14px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--text-high);
+      color: #fff;
+      padding: 11px 18px;
+      border-radius: 50px;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: var(--shadow-lg);
+      z-index: 999;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s;
+      white-space: nowrap;
+    }
+    #toastEl.on { opacity: 1; }
+
+    /* ===== MISC ===== */
+    .rating-stars { color: #F59E0B; font-size: 12px; }
+  </style>
+</head>
+<body data-no-auth-modals>
+<div id="app">
+
+  <!-- ===== SCREENS ===== -->
+  <div id="screens">
+
+    <!-- ══════════════════════════════════════════
+         HOME SCREEN
+    ══════════════════════════════════════════ -->
+    <div class="screen active" id="screen-home">
+
+      <!-- Top bar -->
+      <div class="home-topbar">
+        <div class="home-logo">
+          <div class="home-logo-mark">PP</div>
+          <div class="home-logo-name">PakistanProperty</div>
+        </div>
+        <div class="home-topbar-right">
+          <button class="topbar-icon-btn" onclick="PP.toast('3 new notifications')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg>
+            <span class="topbar-notif-dot"></span>
+          </button>
+          <button class="topbar-avatar" onclick="showScreen('profile')">AK</button>
+        </div>
+      </div>
+
+      <!-- Search pill -->
+      <div class="home-search-bar" onclick="showScreen('search')">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <span>Search city, area, society…</span>
+        <div class="home-search-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        </div>
+      </div>
+
+      <!-- Category chips -->
+      <div class="category-chips">
+        <button class="cat-chip active" onclick="selectCat(this)">All Property</button>
+        <button class="cat-chip" onclick="selectCat(this)">Houses</button>
+        <button class="cat-chip" onclick="selectCat(this)">Apartments</button>
+        <button class="cat-chip" onclick="selectCat(this)">Plots</button>
+        <button class="cat-chip" onclick="selectCat(this)">Commercial</button>
+        <button class="cat-chip" onclick="selectCat(this)">Farmhouses</button>
+      </div>
+
+      <!-- Featured Properties -->
+      <div class="home-section">
+        <div class="section-row">
+          <span class="section-title">Featured Properties</span>
+          <a onclick="showScreen('search')">See all</a>
+        </div>
+        <div class="h-scroll" id="featured-scroll"></div>
+      </div>
+
+      <!-- Browse by City -->
+      <div class="home-section">
+        <div class="section-row">
+          <span class="section-title">Browse by City</span>
+        </div>
+        <div class="h-scroll" id="city-scroll">
+          <div class="city-tile" onclick="showScreen('search')">
+            <img src="https://images.unsplash.com/photo-1589802829985-817e51171b92?w=400&q=80" alt="Islamabad" />
+            <div class="city-tile-overlay"><span class="city-tile-name">Islamabad</span></div>
+          </div>
+          <div class="city-tile" onclick="showScreen('search')">
+            <img src="https://images.unsplash.com/photo-1570168007204-dfb528c6958f?w=400&q=80" alt="Lahore" />
+            <div class="city-tile-overlay"><span class="city-tile-name">Lahore</span></div>
+          </div>
+          <div class="city-tile" onclick="showScreen('search')">
+            <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80" alt="Karachi" />
+            <div class="city-tile-overlay"><span class="city-tile-name">Karachi</span></div>
+          </div>
+          <div class="city-tile" onclick="showScreen('search')">
+            <img src="https://images.unsplash.com/photo-1624555130581-1d9cca783bc0?w=400&q=80" alt="Rawalpindi" />
+            <div class="city-tile-overlay"><span class="city-tile-name">Rawalpindi</span></div>
+          </div>
+          <div class="city-tile" onclick="showScreen('search')">
+            <img src="https://images.unsplash.com/photo-1486325212027-8081e485255e?w=400&q=80" alt="Faisalabad" />
+            <div class="city-tile-overlay"><span class="city-tile-name">Faisalabad</span></div>
+          </div>
+          <div class="city-tile" onclick="showScreen('search')">
+            <img src="https://images.unsplash.com/photo-1549737221-bef65e2604a6?w=400&q=80" alt="Peshawar" />
+            <div class="city-tile-overlay"><span class="city-tile-name">Peshawar</span></div>
+          </div>
+          <div class="city-tile" onclick="showScreen('search')">
+            <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&q=80" alt="Multan" />
+            <div class="city-tile-overlay"><span class="city-tile-name">Multan</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Newly Listed -->
+      <div class="home-section" style="padding-bottom:20px;">
+        <div class="section-row">
+          <span class="section-title">Newly Listed</span>
+          <a onclick="showScreen('search')">See all</a>
+        </div>
+        <div class="newly-list" id="newly-list"></div>
+      </div>
+    </div><!-- /screen-home -->
+
+
+    <!-- ══════════════════════════════════════════
+         SEARCH / EXPLORE SCREEN
+    ══════════════════════════════════════════ -->
+    <div class="screen" id="screen-search">
+
+      <!-- Sticky search bar + filters -->
+      <div class="search-sticky">
+        <div class="search-bar-row">
+          <div class="search-input-wrap">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input type="text" placeholder="Search area, society, city…" />
+          </div>
+          <button class="filter-btn" onclick="toggleFilter()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="12" y1="18" x2="12" y2="18" stroke-width="3"/></svg>
+          </button>
+        </div>
+        <div class="filter-pills-row">
+          <div class="filter-pill">
+            For Sale
+            <button onclick="PP.toast('Filter removed')">
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <div class="filter-pill">
+            Islamabad
+            <button onclick="PP.toast('Filter removed')">
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <div class="filter-pill">
+            3+ Beds
+            <button onclick="PP.toast('Filter removed')">
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="search-results-meta">
+        <strong>1,247</strong> properties found
+      </div>
+
+      <div class="search-list" id="search-list"></div>
+
+      <button class="load-more-btn" onclick="PP.toast('Loading more properties…')">Load more properties</button>
+    </div><!-- /screen-search -->
+
+
+    <!-- ══════════════════════════════════════════
+         MAP SCREEN
+    ══════════════════════════════════════════ -->
+    <div class="screen" id="screen-map">
+      <!-- Full-screen map -->
+      <div id="app-map"></div>
+
+      <!-- Floating search bar -->
+      <div class="map-float-bar">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" placeholder="Search on map…" />
+        <button onclick="toggleFilter()">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--text-mid)" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="12" y1="18" x2="12" y2="18" stroke-width="3"/></svg>
+        </button>
+      </div>
+
+      <!-- Pop-up card when pin tapped -->
+      <div class="map-popup-card" id="map-popup">
+        <button class="map-popup-close" onclick="closeMapPopup()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+        <div class="map-popup-inner" id="map-popup-inner"></div>
+      </div>
+    </div><!-- /screen-map -->
+
+
+    <!-- ══════════════════════════════════════════
+         SAVED SCREEN
+    ══════════════════════════════════════════ -->
+    <div class="screen" id="screen-saved">
+      <div class="saved-header">
+        Saved Properties <span>2 saved</span>
+      </div>
+      <div class="saved-list" id="saved-list"></div>
+    </div><!-- /screen-saved -->
+
+
+    <!-- ══════════════════════════════════════════
+         PROFILE SCREEN
+    ══════════════════════════════════════════ -->
+    <div class="screen" id="screen-profile">
+      <!-- Green header -->
+      <div class="profile-header">
+        <div class="profile-avatar">AK</div>
+        <div style="text-align:center;">
+          <div class="profile-name">Ahmed Khan</div>
+          <div class="profile-verified">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            CNIC Verified
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="profile-stats">
+        <div class="profile-stat">
+          <div class="profile-stat-num">3</div>
+          <div class="profile-stat-label">Listings</div>
+        </div>
+        <div class="profile-stat">
+          <div class="profile-stat-num">12</div>
+          <div class="profile-stat-label">Enquiries</div>
+        </div>
+        <div class="profile-stat">
+          <div class="profile-stat-num">8</div>
+          <div class="profile-stat-label">Saved</div>
+        </div>
+      </div>
+
+      <!-- Menu -->
+      <div class="profile-menu">
+        <div class="profile-menu-item" onclick="PP.toast('My Listings opened')">
+          <div class="profile-menu-icon" style="background:#f0fdf4; color:#16a34a;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          </div>
+          <div style="flex:1;">
+            <div class="profile-menu-label">My Listings</div>
+            <div class="profile-menu-sub">3 active listings</div>
+          </div>
+          <svg class="menu-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+        <div class="profile-menu-item" onclick="PP.toast('Post new ad')">
+          <div class="profile-menu-icon" style="background:#ecfdf5; color:#059669;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </div>
+          <div style="flex:1;">
+            <div class="profile-menu-label">Post New Ad</div>
+            <div class="profile-menu-sub">List your property for free</div>
+          </div>
+          <svg class="menu-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+        <div class="profile-menu-item" onclick="PP.toast('Payment history')">
+          <div class="profile-menu-icon" style="background:#fefce8; color:#ca8a04;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+          </div>
+          <div style="flex:1;">
+            <div class="profile-menu-label">Payment History</div>
+          </div>
+          <svg class="menu-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+        <div class="profile-menu-item" onclick="PP.toast('Settings opened')">
+          <div class="profile-menu-icon" style="background:#f1f5f9; color:#64748b;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </div>
+          <div style="flex:1;">
+            <div class="profile-menu-label">Settings</div>
+          </div>
+          <svg class="menu-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+        <div class="profile-menu-item" onclick="PP.toast('Help & Support')">
+          <div class="profile-menu-icon" style="background:#eff6ff; color:#3b82f6;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </div>
+          <div style="flex:1;">
+            <div class="profile-menu-label">Help &amp; Support</div>
+          </div>
+          <svg class="menu-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+        <div class="profile-menu-item" onclick="PP.toast('Signed out. Goodbye!')">
+          <div class="profile-menu-icon" style="background:#fef2f2; color:#ef4444;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          </div>
+          <div style="flex:1;">
+            <div class="profile-menu-label" style="color:#ef4444;">Sign Out</div>
+          </div>
+          <svg class="menu-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+      </div>
+
+      <div style="padding-bottom:20px;text-align:center;font-size:11px;color:var(--text-faint);">
+        PakistanProperty v2.4.1 · &copy; 2026
+      </div>
+    </div><!-- /screen-profile -->
+
+  </div><!-- /screens -->
+
+
+  <!-- ===== BOTTOM NAVIGATION ===== -->
+  <nav id="bottom-nav">
+    <button class="nav-tab active" id="tab-home" onclick="showScreen('home')">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+        <polyline points="9 22 9 12 15 12 15 22"/>
+      </svg>
+      <span>Home</span>
+    </button>
+    <button class="nav-tab" id="tab-search" onclick="showScreen('search')">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"/>
+        <path d="m21 21-4.35-4.35"/>
+      </svg>
+      <span>Search</span>
+    </button>
+    <button class="nav-tab" id="tab-map" onclick="showScreen('map')">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/>
+        <line x1="8" y1="2" x2="8" y2="18"/>
+        <line x1="16" y1="6" x2="16" y2="22"/>
+      </svg>
+      <span>Map</span>
+    </button>
+    <button class="nav-tab" id="tab-saved" onclick="showScreen('saved')">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+      </svg>
+      <span>Saved</span>
+    </button>
+    <button class="nav-tab" id="tab-profile" onclick="showScreen('profile')">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+        <circle cx="12" cy="7" r="4"/>
+      </svg>
+      <span>Profile</span>
+    </button>
+  </nav>
+
+</div><!-- /app -->
+
+
+<!-- ===== PROPERTY DETAIL OVERLAY ===== -->
+<div id="detail-overlay">
+  <div id="detail-backdrop" onclick="closeDetail()"></div>
+  <div id="detail-sheet">
+    <button class="detail-close-btn" onclick="closeDetail()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <div id="detail-content"></div>
+  </div>
+  <div class="detail-sticky-bar" id="detail-sticky-bar"></div>
+</div>
+
+
+<!-- ===== FILTER BOTTOM SHEET ===== -->
+<div id="filter-overlay">
+  <div id="filter-backdrop" onclick="toggleFilter()"></div>
+  <div id="filter-sheet">
+    <div class="filter-handle"></div>
+    <div class="filter-header">
+      <span class="filter-header-title">Filters</span>
+      <button class="filter-reset" onclick="resetFilters()">Reset</button>
+    </div>
+
+    <!-- Purpose -->
+    <div class="filter-section">
+      <div class="filter-section-label">Purpose</div>
+      <div class="filter-pill-group">
+        <button class="filter-pill-opt active" onclick="togglePillOpt(this, 'purpose')">For Sale</button>
+        <button class="filter-pill-opt" onclick="togglePillOpt(this, 'purpose')">For Rent</button>
+      </div>
+    </div>
+
+    <div class="filter-divider"></div>
+
+    <!-- Property Type -->
+    <div class="filter-section">
+      <div class="filter-section-label">Property Type</div>
+      <div class="filter-pill-group">
+        <button class="filter-pill-opt active" onclick="togglePillOpt(this, 'type')">House</button>
+        <button class="filter-pill-opt" onclick="togglePillOpt(this, 'type')">Apartment</button>
+        <button class="filter-pill-opt" onclick="togglePillOpt(this, 'type')">Plot</button>
+        <button class="filter-pill-opt" onclick="togglePillOpt(this, 'type')">Commercial</button>
+      </div>
+    </div>
+
+    <div class="filter-divider"></div>
+
+    <!-- Price Range -->
+    <div class="filter-section">
+      <div class="filter-section-label">Price Range (PKR)</div>
+      <div class="filter-price-row">
+        <input class="filter-price-input" type="number" placeholder="Min price" />
+        <input class="filter-price-input" type="number" placeholder="Max price" />
+      </div>
+    </div>
+
+    <div class="filter-divider"></div>
+
+    <!-- Bedrooms -->
+    <div class="filter-section" style="padding-bottom:16px;">
+      <div class="filter-section-label">Bedrooms</div>
+      <div class="filter-pill-group">
+        <button class="filter-pill-opt active" onclick="togglePillOpt(this, 'beds')">Any</button>
+        <button class="filter-pill-opt" onclick="togglePillOpt(this, 'beds')">1+</button>
+        <button class="filter-pill-opt" onclick="togglePillOpt(this, 'beds')">2+</button>
+        <button class="filter-pill-opt" onclick="togglePillOpt(this, 'beds')">3+</button>
+        <button class="filter-pill-opt" onclick="togglePillOpt(this, 'beds')">4+</button>
+      </div>
+    </div>
+
+    <div class="filter-footer">
+      <button class="filter-apply-btn" onclick="applyFilters()">Apply Filters</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ===== TOAST ===== -->
+<div id="toastEl"></div>
+
+
+<script>
+/* ===== STATE ===== */
+let appMap = null;
+let currentScreen = 'home';
+const savedIds = new Set([1, 6]);
+
+/* ===== SCREEN SWITCHING ===== */
+function showScreen(name) {
+  // Deactivate all
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+
+  // Activate target
+  const screen = document.getElementById('screen-' + name);
+  if (screen) screen.classList.add('active');
+
+  const tab = document.getElementById('tab-' + name);
+  if (tab) tab.classList.add('active');
+
+  currentScreen = name;
+
+  // Init map on first visit
+  if (name === 'map' && !appMap) {
+    // slight delay to let screen become visible
+    setTimeout(initAppMap, 80);
+  }
+}
+
+/* ===== CARD BUILDERS ===== */
+function buildFeatCard(l) {
+  const suf = l.priceSuffix ? l.priceSuffix : '';
+  const specs = [];
+  if (l.bedrooms > 0) specs.push(`<span class="feat-card-spec"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20v-8a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v8"/><path d="M4 10V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4"/></svg>${l.bedrooms} Beds</span>`);
+  if (l.bathrooms > 0) specs.push(`<span class="feat-card-spec"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16a1 1 0 0 1 1 1v3a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4v-3a1 1 0 0 1 1-1z"/><path d="M6 12V5a2 2 0 0 1 2-2h3v2.25"/></svg>${l.bathrooms} Bath</span>`);
+  specs.push(`<span class="feat-card-spec">${l.sizeText}</span>`);
+
+  return `
+    <div class="feat-card" onclick="openDetail(${l.id})">
+      <img class="feat-card-img" src="${l.images[0]}" alt="${l.short}" loading="lazy" />
+      <div class="feat-card-body">
+        <div class="feat-card-price">${l.priceLabel}<span>${suf}</span></div>
+        <div class="feat-card-title">${l.short}</div>
+        <div class="feat-card-loc">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          ${l.city}
+        </div>
+        <div class="feat-card-footer">
+          <div class="feat-card-specs">${specs.join('')}</div>
+          <button class="feat-card-btn" onclick="event.stopPropagation(); PP.toast('Contacting agent…')">Contact</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function buildListCard(l, showHeart) {
+  const suf = l.priceSuffix || '';
+  const isSaved = savedIds.has(l.id);
+  const heartFill = isSaved ? '#EF4444' : 'none';
+  const heartStroke = isSaved ? '#EF4444' : '#9CA3AF';
+  const specs = [];
+  if (l.bedrooms > 0) specs.push(`<span class="list-card-spec"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20v-8a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v8"/><path d="M4 10V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4"/></svg>${l.bedrooms} Bed</span>`);
+  if (l.bathrooms > 0) specs.push(`<span class="list-card-spec"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16a1 1 0 0 1 1 1v3a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4v-3a1 1 0 0 1 1-1z"/><path d="M6 12V5a2 2 0 0 1 2-2h3v2.25"/></svg>${l.bathrooms} Bath</span>`);
+  specs.push(`<span class="list-card-spec">${l.sizeText}</span>`);
+
+  return `
+    <div class="list-card" style="position:relative;" onclick="openDetail(${l.id})">
+      <img class="list-card-img" src="${l.images[0]}" alt="${l.short}" loading="lazy" />
+      ${showHeart ? `<button class="list-card-heart" onclick="event.stopPropagation(); toggleSave(${l.id}, this)" aria-label="Save">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="${heartFill}" stroke="${heartStroke}" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+      </button>` : ''}
+      <div class="list-card-body">
+        <div>
+          <div class="list-card-price">${l.priceLabel}<span>${suf}</span></div>
+          <div class="list-card-title">${l.short}</div>
+          <div class="list-card-loc">${l.loc}</div>
+        </div>
+        <div class="list-card-specs">${specs.join('')}</div>
+      </div>
+    </div>`;
+}
+
+function buildNewlyCard(l) {
+  return `
+    <div class="newly-card" onclick="openDetail(${l.id})">
+      <img class="newly-card-img" src="${l.images[0]}" alt="${l.short}" loading="lazy" />
+      <div class="newly-card-body">
+        <div class="newly-card-price">${l.priceLabel}</div>
+        <div class="newly-card-title">${l.short}</div>
+        <div class="newly-card-loc">${l.loc}</div>
+      </div>
+    </div>`;
+}
+
+/* ===== TOGGLE SAVE ===== */
+function toggleSave(id, btn) {
+  if (savedIds.has(id)) {
+    savedIds.delete(id);
+    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`;
+    PP.toast('Removed from saved');
+  } else {
+    savedIds.add(id);
+    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="#EF4444" stroke="#EF4444" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`;
+    PP.toast('Saved to favourites');
+  }
+}
+
+/* ===== CATEGORY CHIPS ===== */
+function selectCat(el) {
+  document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+}
+
+/* ===== POPULATE HOME ===== */
+function populateHome() {
+  const listings = window.PP.listings;
+
+  // Featured — first 4
+  const featScroll = document.getElementById('featured-scroll');
+  featScroll.innerHTML = listings.slice(0, 4).map(buildFeatCard).join('');
+
+  // Newly Listed — listings 5-8
+  const newlyList = document.getElementById('newly-list');
+  newlyList.innerHTML = listings.slice(4, 8).map(buildNewlyCard).join('');
+}
+
+/* ===== POPULATE SEARCH ===== */
+function populateSearch() {
+  const listings = window.PP.listings;
+  const searchList = document.getElementById('search-list');
+  searchList.innerHTML = listings.map(l => buildListCard(l, true)).join('');
+}
+
+/* ===== POPULATE SAVED ===== */
+function populateSaved() {
+  const listings = window.PP.listings.filter(l => savedIds.has(l.id));
+  const savedList = document.getElementById('saved-list');
+  savedList.innerHTML = listings.map(l => `
+    <div class="saved-card-wrap">
+      <button class="saved-heart" onclick="toggleSave(${l.id}, this)" aria-label="Unsave">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="#EF4444" stroke="#EF4444" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+      </button>
+      ${buildListCard(l, false)}
+    </div>
+  `).join('');
+}
+
+/* ===== DETAIL OVERLAY ===== */
+function openDetail(id) {
+  const l = window.PP.byId(id);
+  if (!l) return;
+
+  const overlay = document.getElementById('detail-overlay');
+  const content = document.getElementById('detail-content');
+  const stickyBar = document.getElementById('detail-sticky-bar');
+  const suf = l.priceSuffix || '';
+
+  // Gallery
+  const galleryImgs = l.images.map((img, i) =>
+    `<img src="${img}" alt="${l.short} photo ${i+1}" loading="${i === 0 ? 'eager' : 'lazy'}" />`
+  ).join('');
+
+  // Spec pills
+  const specPills = [];
+  if (l.bedrooms > 0) specPills.push(`<div class="detail-spec-pill">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20v-8a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v8"/><path d="M4 10V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4"/></svg>
+    ${l.bedrooms} Beds
+  </div>`);
+  if (l.bathrooms > 0) specPills.push(`<div class="detail-spec-pill">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16a1 1 0 0 1 1 1v3a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4v-3a1 1 0 0 1 1-1z"/><path d="M6 12V5a2 2 0 0 1 2-2h3v2.25"/></svg>
+    ${l.bathrooms} Baths
+  </div>`);
+  specPills.push(`<div class="detail-spec-pill">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>
+    ${l.sizeText}
+  </div>`);
+  specPills.push(`<div class="detail-spec-pill">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    ${l.type}
+  </div>`);
+
+  // Agent initials
+  const agentInit = l.agent.name.split(' ').map(w => w[0]).join('').slice(0, 2);
+
+  // Amenities
+  const amenityChips = (l.amenities || []).map(a => `<span class="amenity-chip">${a}</span>`).join('');
+
+  // Badges
+  const badges = (l.badges || []).map(b => `<span class="badge-chip">${b}</span>`).join('');
+
+  content.innerHTML = `
+    <div class="detail-gallery" id="detail-gallery">${galleryImgs}</div>
+    <div class="detail-body">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">${badges}</div>
+      <div class="detail-price-row">
+        <span class="detail-price">${l.priceLabel}</span>
+        ${suf ? `<span class="detail-price-suf">${suf}</span>` : ''}
+      </div>
+      <div class="detail-title">${l.title}</div>
+      <div class="detail-loc">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        ${l.loc}
+      </div>
+
+      <div class="detail-specs">${specPills.join('')}</div>
+
+      <!-- Agent -->
+      <div class="detail-agent">
+        <div class="detail-agent-avatar">${agentInit}</div>
+        <div class="detail-agent-info">
+          <div class="detail-agent-name">${l.agent.name}</div>
+          <div class="detail-agent-agency">${l.agent.agency}</div>
+          <div class="detail-agent-rating"><span class="rating-stars">&#9733;</span> ${l.agent.rating} · ${l.agent.deals} deals</div>
+        </div>
+        <div class="detail-agent-btns">
+          <button class="agent-call-btn" onclick="PP.toast('Calling ${l.agent.name}…')" aria-label="Call">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.18 6.18l1.07-.92a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          </button>
+          <button class="agent-wa-btn" onclick="PP.toast('Opening WhatsApp…')" aria-label="WhatsApp">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Description -->
+      <div class="detail-section-title">About this property</div>
+      <div class="detail-desc">${l.desc}</div>
+
+      <!-- Amenities -->
+      ${amenityChips ? `<div class="detail-section-title">Amenities</div>
+      <div class="detail-amenities">${amenityChips}</div>` : ''}
+    </div>
+  `;
+
+  // Sticky bar
+  stickyBar.innerHTML = `
+    <div>
+      <div class="detail-sticky-price">${l.priceLabel}</div>
+      <div class="detail-sticky-sub">${suf || 'For ' + (l.purpose === 'rent' ? 'Rent' : 'Sale')}</div>
+    </div>
+    <button class="detail-book-btn" onclick="PP.toast('Booking a visit for ${l.short}…')">Book a Visit</button>
+  `;
+
+  // Reset scroll
+  document.getElementById('detail-sheet').scrollTop = 0;
+
+  // Open
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDetail() {
+  document.getElementById('detail-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+/* ===== FILTER SHEET ===== */
+let filterOpen = false;
+function toggleFilter() {
+  filterOpen = !filterOpen;
+  document.getElementById('filter-overlay').classList.toggle('open', filterOpen);
+}
+
+function applyFilters() {
+  toggleFilter();
+  PP.toast('Filters applied');
+}
+
+function resetFilters() {
+  document.querySelectorAll('.filter-pill-opt').forEach(p => {
+    p.classList.remove('active');
+  });
+  // Re-set defaults
+  const purposeOpts = document.querySelectorAll('.filter-pill-group')[0]?.querySelectorAll('.filter-pill-opt');
+  if (purposeOpts && purposeOpts[0]) purposeOpts[0].classList.add('active');
+  document.querySelectorAll('.filter-price-input').forEach(i => i.value = '');
+  // Reset beds to "Any"
+  const bedOpts = document.querySelectorAll('.filter-pill-group')[3]?.querySelectorAll('.filter-pill-opt');
+  if (bedOpts && bedOpts[0]) bedOpts[0].classList.add('active');
+  PP.toast('Filters reset');
+}
+
+function togglePillOpt(el, group) {
+  // For purpose and beds: single select. For type: multi select.
+  if (group === 'purpose' || group === 'beds') {
+    el.closest('.filter-pill-group').querySelectorAll('.filter-pill-opt').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+  } else {
+    el.classList.toggle('active');
+  }
+}
+
+/* ===== MAP ===== */
+function initAppMap() {
+  const mapEl = document.getElementById('app-map');
+  if (!mapEl || appMap) return;
+
+  appMap = L.map('app-map', {
+    center: [33.6844, 73.0479],
+    zoom: 12,
+    zoomControl: true,
+    attributionControl: false
+  });
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19
+  }).addTo(appMap);
+
+  // Add pins for all listings
+  window.PP.listings.forEach(listing => {
+    const marker = L.marker([listing.lat, listing.lng], {
+      icon: PP.avatarPin(listing, false)
+    }).addTo(appMap);
+
+    marker.on('click', () => {
+      showMapPopup(listing, marker);
+    });
+  });
+}
+
+function showMapPopup(l, marker) {
+  const popup = document.getElementById('map-popup');
+  const inner = document.getElementById('map-popup-inner');
+  const suf = l.priceSuffix || '';
+
+  inner.innerHTML = `
+    <img class="map-popup-img" src="${l.images[0]}" alt="${l.short}" />
+    <div class="map-popup-body">
+      <div class="map-popup-price">${l.priceLabel} <span style="font-size:11px;font-weight:400;color:var(--text-muted);">${suf}</span></div>
+      <div class="map-popup-title">${l.short}</div>
+      <div class="map-popup-loc">${l.city}</div>
+      <div class="map-popup-btns">
+        <button class="map-popup-btn outline" onclick="closeMapPopup(); openDetail(${l.id})">View</button>
+        <button class="map-popup-btn primary" onclick="PP.toast('Contacting agent…')">Contact</button>
+      </div>
+    </div>
+  `;
+
+  popup.classList.add('open');
+}
+
+function closeMapPopup() {
+  document.getElementById('map-popup').classList.remove('open');
+}
+
+/* ===== MAP POPUP: Close on map click ===== */
+document.addEventListener('DOMContentLoaded', () => {
+  // Map click to close popup handled after map init
+});
+
+/* ===== KEYBOARD: ESC closes overlays ===== */
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeDetail();
+    if (filterOpen) toggleFilter();
+    closeMapPopup();
+  }
+});
+
+/* ===== INIT ===== */
+document.addEventListener('DOMContentLoaded', () => {
+  populateHome();
+  populateSearch();
+  populateSaved();
+});
+</script>
+</body>
+</html>

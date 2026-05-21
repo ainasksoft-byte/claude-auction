@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PakistanProperty — Buy, Rent &amp; Sell Property in Pakistan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/pprealestate/assets/pp.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+  /* ===== CATEGORY STRIP ===== */
+  .cat-strip {
+    position: fixed; top: var(--header-h); left: 0; right: 0; z-index: 90;
+    background: var(--white); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 6px;
+    padding: 0 20px; height: var(--cat-h);
+    overflow-x: auto; scrollbar-width: none;
+  }
+  .cat-strip::-webkit-scrollbar { display: none; }
+  .cat-chip {
+    display: flex; align-items: center; gap: 6px;
+    padding: 5px 14px; border-radius: 50px;
+    border: 1.5px solid var(--border);
+    font-size: 12.5px; font-weight: 500; color: var(--text-mid);
+    white-space: nowrap; cursor: pointer; flex-shrink: 0;
+    transition: all .15s;
+  }
+  .cat-chip svg { flex-shrink: 0; opacity: .55; }
+  .cat-chip:hover { border-color: var(--green); color: var(--green); }
+  .cat-chip:hover svg { opacity: 1; stroke: var(--green); }
+  .cat-chip.active { background: var(--green); border-color: var(--green); color: #fff; }
+  .cat-chip.active svg { opacity: 1; stroke: #fff; }
+
+  .page-body { padding-top: calc(var(--header-h) + var(--cat-h)); display: flex; min-height: 100vh; }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: var(--sidebar-w); flex-shrink: 0;
+    position: fixed; top: calc(var(--header-h) + var(--cat-h)); left: 0; bottom: 0;
+    overflow-y: auto; background: var(--white); border-right: 1px solid var(--border);
+    padding: 16px 0 80px;
+  }
+  .sb-section-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 11px 20px; cursor: pointer; user-select: none;
+    font-size: 12.5px; font-weight: 700; color: var(--text-high);
+    letter-spacing: .3px; text-transform: uppercase;
+  }
+  .sb-section-head svg { opacity: .4; transition: transform .22s; }
+  .sb-section-head.collapsed svg { transform: rotate(-90deg); }
+  .sb-body { overflow: hidden; transition: max-height .28s ease; }
+  .sb-sep { height: 1px; background: var(--border-faint); margin: 4px 20px; }
+
+  .f-row { display: flex; align-items: center; justify-content: space-between; padding: 7px 20px; cursor: pointer; transition: background .1s; }
+  .f-row:hover { background: var(--bg); }
+  .f-label { display: flex; align-items: center; gap: 9px; font-size: 13px; color: var(--text-mid); }
+  .f-label svg { opacity: .5; flex-shrink: 0; }
+  .f-right { display: flex; align-items: center; gap: 8px; }
+  .f-count { font-size: 11.5px; color: var(--text-faint); }
+  .checkbox {
+    width: 17px; height: 17px; border-radius: 4px;
+    border: 1.5px solid var(--border); flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .15s;
+  }
+  .checkbox.on { background: var(--green); border-color: var(--green); }
+  .checkbox.on::after {
+    content: ''; width: 9px; height: 5px;
+    border-left: 2px solid #fff; border-bottom: 2px solid #fff;
+    transform: rotate(-45deg) translateY(-1px);
+  }
+
+  .price-inputs { display: flex; gap: 8px; padding: 4px 20px 10px; }
+  .pi-wrap { flex: 1; position: relative; }
+  .pi-prefix { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 12px; font-weight: 600; color: var(--text-muted); }
+  .pi-wrap input {
+    width: 100%; padding: 9px 8px 9px 30px;
+    border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+    font-size: 13px; color: var(--text-high); outline: none; transition: border-color .18s;
+  }
+  .pi-wrap input:focus { border-color: var(--green); }
+  .range-wrap { padding: 2px 20px 14px; }
+  .range-track { height: 3px; background: var(--border); border-radius: 2px; position: relative; }
+  .range-fill { position: absolute; left: 0; right: 20%; height: 100%; background: var(--green); border-radius: 2px; }
+  .range-thumb { position: absolute; top: 50%; transform: translate(-50%, -50%); width: 14px; height: 14px; border-radius: 50%; background: var(--white); border: 2px solid var(--green); box-shadow: var(--shadow-sm); cursor: pointer; }
+  .range-thumb.l { left: 0; }
+  .range-thumb.r { left: 80%; }
+
+  .pill-row { display: flex; gap: 5px; padding: 4px 20px 12px; flex-wrap: wrap; }
+  .pill {
+    padding: 5px 13px; border-radius: 50px;
+    border: 1.5px solid var(--border); font-size: 12.5px; color: var(--text-mid);
+    cursor: pointer; transition: all .15s;
+  }
+  .pill:hover { border-color: var(--green); color: var(--green); }
+  .pill.on { background: var(--green); border-color: var(--green); color: #fff; }
+
+  .amenity-wrap { display: flex; flex-wrap: wrap; gap: 5px; padding: 4px 20px 12px; }
+  .a-chip {
+    padding: 4px 11px; border-radius: 6px;
+    border: 1.5px solid var(--border); font-size: 12px; color: var(--text-mid);
+    cursor: pointer; transition: all .15s;
+  }
+  .a-chip:hover, .a-chip.on { border-color: var(--green); color: var(--green); background: var(--green-faint); }
+
+  .tgl-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 20px; }
+  .tgl-lbl { font-size: 13px; color: var(--text-mid); font-weight: 500; }
+  .tgl { width: 38px; height: 20px; border-radius: 10px; background: var(--border); position: relative; cursor: pointer; transition: background .18s; }
+  .tgl.on { background: var(--green); }
+  .tgl::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--white); box-shadow: var(--shadow-sm); transition: transform .18s; }
+  .tgl.on::after { transform: translateX(18px); }
+
+  .sb-footer {
+    position: fixed; bottom: 0; left: 0; width: var(--sidebar-w);
+    background: var(--white); border-top: 1px solid var(--border);
+    padding: 12px 20px; display: flex; gap: 8px; z-index: 95;
+  }
+  .btn-reset { flex: 1; padding: 9px; border-radius: var(--radius-sm); border: 1.5px solid var(--border); font-size: 13px; font-weight: 600; color: var(--text-mid); transition: all .15s; }
+  .btn-reset:hover { border-color: var(--text-mid); }
+  .btn-apply { flex: 2; padding: 9px; border-radius: var(--radius-sm); background: var(--green); color: #fff; font-size: 13px; font-weight: 600; transition: background .15s; }
+  .btn-apply:hover { background: var(--green-hover); }
+
+  /* MAIN */
+  .main { margin-left: var(--sidebar-w); flex: 1; padding: 20px 20px 48px; min-width: 0; }
+  .results-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; }
+  .results-title { font-size: 19px; font-weight: 800; color: var(--text-high); }
+  .results-title span { font-size: 14px; font-weight: 400; color: var(--text-muted); margin-left: 8px; }
+  .results-ctrl { display: flex; align-items: center; gap: 8px; }
+  .sort-sel {
+    padding: 7px 30px 7px 11px; border-radius: var(--radius-sm);
+    border: 1.5px solid var(--border); font-size: 13px; color: var(--text-mid);
+    appearance: none;
+    background: var(--white) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2.5'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 9px center;
+    cursor: pointer; outline: none; transition: border-color .18s;
+  }
+  .sort-sel:focus { border-color: var(--green); }
+  .map-btn {
+    display: flex; align-items: center; gap: 6px;
+    padding: 7px 14px; border-radius: var(--radius-sm);
+    border: 1.5px solid var(--border); font-size: 13px; font-weight: 600;
+    color: var(--text-mid); background: var(--white); transition: all .18s;
+  }
+  .map-btn:hover, .map-btn.on { border-color: var(--green); color: var(--green); background: var(--green-faint); }
+
+  .view-btns { display: flex; border: 1.5px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+  .view-btn {
+    display: flex; align-items: center; justify-content: center;
+    width: 34px; height: 34px; color: var(--text-mid); transition: all .15s;
+  }
+  .view-btn + .view-btn { border-left: 1.5px solid var(--border); }
+  .view-btn:hover { background: var(--bg); color: var(--text-high); }
+  .view-btn.on { background: var(--green-faint); color: var(--green); }
+
+  .active-tags { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+  .a-tag { display: flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 50px; background: var(--green-faint); border: 1px solid rgba(26,107,42,.18); font-size: 12px; font-weight: 500; color: var(--green); cursor: pointer; }
+  .a-tag .rm { font-size: 14px; line-height: 1; font-weight: 700; margin-left: 2px; opacity: .7; }
+  .a-tag:hover .rm { opacity: 1; }
+
+  .listings-wrap { display: flex; gap: 16px; }
+  .grid-col { flex: 1; min-width: 0; }
+  .map-col {
+    width: 420px; flex-shrink: 0;
+    position: sticky; top: calc(var(--header-h) + var(--cat-h) + 20px);
+    height: calc(100vh - var(--header-h) - var(--cat-h) - 40px);
+    border-radius: var(--radius-lg); overflow: hidden;
+    border: 1.5px solid var(--border); display: none;
+    background: #e4ede6;
+  }
+  .map-col.on { display: block; }
+  #leafletMap { width: 100%; height: 100%; }
+
+  .prop-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(258px, 1fr));
+    gap: 16px;
+  }
+  /* List view */
+  .prop-list { display: flex; flex-direction: column; gap: 10px; }
+  .prop-list .card { display: flex; flex-direction: row; height: 130px; }
+  .prop-list .card.featured { grid-column: unset; }
+  .prop-list .c-img { width: 190px; flex-shrink: 0; height: 100%; border-radius: 0; }
+  .prop-list .c-img img { height: 100%; border-radius: 0; }
+  .prop-list .c-body { flex: 1; padding: 11px 14px; display: flex; flex-direction: column; justify-content: space-between; }
+  .prop-list .c-top { margin-bottom: 0; }
+  .prop-list .specs { margin-bottom: 0; }
+  .prop-list .badge-row { flex-direction: row; flex-wrap: wrap; }
+
+  .card {
+    background: var(--white); border-radius: var(--radius-lg);
+    border: 1px solid var(--border); overflow: hidden; cursor: pointer;
+    transition: transform .2s, box-shadow .2s; position: relative;
+  }
+  .card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+  .card:hover .c-img img { transform: scale(1.04); }
+  .card.featured { grid-column: span 2; }
+  .card.selected { outline: 2px solid var(--green); outline-offset: 2px; }
+
+  .c-img { position: relative; height: 186px; overflow: hidden; background: #d8e5db; }
+  .c-img img { height: 100%; width: 100%; object-fit: cover; transition: transform .4s ease; }
+
+  .badge-row { position: absolute; top: 10px; left: 10px; display: flex; flex-direction: column; gap: 4px; }
+  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 5px; font-size: 10.5px; font-weight: 700; letter-spacing: .15px; backdrop-filter: blur(6px); }
+  .badge-v   { background: rgba(26,107,42,.88); color: #fff; }
+  .badge-i   { background: rgba(30,30,30,.75);  color: #fff; }
+  .badge-new { background: rgba(55,65,81,.82);  color: #fff; }
+  .badge-rent{ background: rgba(17,24,39,.85);  color: #fff; }
+
+  .heart {
+    position: absolute; top: 10px; right: 10px;
+    width: 30px; height: 30px; border-radius: 50%;
+    background: rgba(255,255,255,.82); backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: var(--shadow-sm); transition: transform .15s; z-index: 2;
+  }
+  .heart:hover { transform: scale(1.1); }
+  .heart.on svg { fill: var(--green); stroke: var(--green); }
+
+  .dist-tag {
+    position: absolute; bottom: 10px; left: 10px;
+    background: rgba(17,24,39,.7); color: #fff; backdrop-filter: blur(4px);
+    padding: 3px 9px; border-radius: 5px; font-size: 11px; font-weight: 600;
+  }
+
+  .c-body { padding: 13px 13px 11px; }
+  .c-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 3px; }
+  .c-title { font-size: 13.5px; font-weight: 700; color: var(--text-high); line-height: 1.3; flex: 1; }
+  .c-rating { display: flex; align-items: center; gap: 3px; flex-shrink: 0; }
+  .star { color: #111827; font-size: 12px; }
+  .r-val { font-size: 13px; font-weight: 700; color: var(--text-high); }
+  .r-cnt { font-size: 11px; color: var(--text-faint); }
+  .c-loc { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px; margin-bottom: 10px; }
+
+  .specs { display: flex; border: 1px solid var(--border-faint); border-radius: var(--radius-sm); overflow: hidden; margin-bottom: 11px; }
+  .spec { flex: 1; padding: 7px 5px; text-align: center; border-right: 1px solid var(--border-faint); }
+  .spec:last-child { border-right: none; }
+  .sv { font-size: 13px; font-weight: 700; color: var(--text-high); }
+  .sl { font-size: 10px; color: var(--text-faint); margin-top: 1px; }
+
+  .c-foot { display: flex; align-items: center; justify-content: space-between; }
+  .price-block .p-main { font-size: 17px; font-weight: 800; color: var(--text-high); }
+  .price-block .p-note { font-size: 11px; color: var(--text-muted); }
+  .book-btn {
+    display: flex; align-items: center; gap: 5px;
+    padding: 8px 14px; border-radius: var(--radius-sm);
+    background: var(--green); color: #fff; font-size: 12.5px; font-weight: 700;
+    transition: background .15s;
+  }
+  .book-btn:hover { background: var(--green-hover); }
+
+  /* Leaflet pin */
+  .ps-pin-wrap { background: transparent; border: 0; }
+  .ps-pin {
+    background: var(--green); color: #fff; border: 2px solid #fff;
+    padding: 4px 10px; border-radius: 20px; font-size: 11.5px; font-weight: 700;
+    box-shadow: var(--shadow-md); white-space: nowrap; text-align: center;
+    transition: transform .18s, background .18s;
+  }
+  .ps-pin.on { background: var(--text-high); transform: scale(1.1); }
+  .leaflet-popup-content-wrapper { border-radius: 12px; padding: 0; overflow: hidden; }
+  .leaflet-popup-content { margin: 0; width: 260px !important; }
+  .pp-img { height: 110px; overflow: hidden; background: #c9d9cb; }
+  .pp-img img { height: 100%; width: 100%; object-fit: cover; }
+  .pp-body { padding: 10px 12px; }
+  .pp-title { font-size: 13px; font-weight: 700; color: var(--text-high); margin-bottom: 2px; }
+  .pp-loc { font-size: 11.5px; color: var(--text-muted); margin-bottom: 8px; }
+  .pp-foot { display: flex; align-items: center; justify-content: space-between; }
+  .pp-price { font-size: 15px; font-weight: 800; color: var(--green); }
+  .pp-price span { font-size: 11px; color: var(--text-muted); font-weight: 400; }
+  .pp-book { padding: 6px 13px; background: var(--green); color: #fff; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; }
+  .pp-book:hover { background: var(--green-hover); }
+
+  /* Nearby POI pins */
+  .poi-wrap { background: transparent; border: 0; }
+  .poi-pin {
+    display: flex; align-items: center; gap: 4px;
+    padding: 3px 8px 3px 5px; border-radius: 16px;
+    border: 1.5px solid #fff; font-size: 10.5px; font-weight: 700;
+    box-shadow: 0 2px 8px rgba(0,0,0,.22); white-space: nowrap;
+    animation: poiIn .25s ease forwards;
+  }
+  @keyframes poiIn { from { opacity:0; transform:scale(.7); } to { opacity:1; transform:scale(1); } }
+  .poi-pin .poi-icon { font-size: 12px; line-height: 1; }
+  .poi-school    { background: #2563eb; color: #fff; }
+  .poi-hospital  { background: #dc2626; color: #fff; }
+  .poi-mosque    { background: #059669; color: #fff; }
+  .poi-park      { background: #16a34a; color: #fff; }
+  .poi-market    { background: #d97706; color: #fff; }
+  .poi-bank      { background: #1e40af; color: #fff; }
+  .poi-restaurant{ background: #b45309; color: #fff; }
+  .poi-transport { background: #7c3aed; color: #fff; }
+  .poi-dist-label {
+    background: rgba(17,24,39,.82); color: #fff; backdrop-filter: blur(4px);
+    padding: 2px 8px; border-radius: 4px; font-size: 9.5px; font-weight: 700;
+    white-space: nowrap; border-left: 3px solid #1a6b2a;
+  }
+
+  .load-row { display: flex; justify-content: center; margin-top: 24px; }
+  .btn-load { padding: 11px 32px; border-radius: var(--radius-sm); border: 1.5px solid var(--border); font-size: 13.5px; font-weight: 600; color: var(--text-mid); background: var(--white); display: flex; align-items: center; gap: 7px; transition: all .15s; }
+  .btn-load:hover { border-color: var(--green); color: var(--green); background: var(--green-faint); }
+
+  @media (max-width: 860px) { .map-col { display: none !important; } }
+  @media (max-width: 700px) {
+    :root { --sidebar-w: 230px; }
+    .card.featured { grid-column: span 1; }
+    .sb-meta, .sb-divider { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div id="pp-header" data-active="explore"></div>
+
+<!-- ═══════════ CATEGORY STRIP ═══════════ -->
+<div class="cat-strip">
+  <div class="cat-chip active" onclick="setcat(this)">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    All Property
+  </div>
+  <div class="cat-chip" onclick="setcat(this)">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    Houses
+  </div>
+  <div class="cat-chip" onclick="setcat(this)">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="9" y1="7" x2="9" y2="7"/><line x1="15" y1="7" x2="15" y2="7"/><line x1="9" y1="12" x2="9" y2="12"/><line x1="15" y1="12" x2="15" y2="12"/><path d="M9 22v-4h6v4"/></svg>
+    Apartments
+  </div>
+  <div class="cat-chip" onclick="setcat(this)">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 21 21 21 21 7 12 3 3 7 3 21"/><line x1="9" y1="14" x2="9" y2="21"/></svg>
+    Plots
+  </div>
+  <div class="cat-chip" onclick="setcat(this)">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="1"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
+    Commercial
+  </div>
+  <div class="cat-chip" onclick="setcat(this)">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 22V11L12 2l10 9v11"/><path d="M15 22v-8H9v8"/><path d="M2 11h20"/></svg>
+    Farmhouses
+  </div>
+  <div class="cat-chip" onclick="setcat(this)">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4v16"/><path d="M2 8h18a2 2 0 0 1 2 2v10"/><path d="M2 17h20"/><path d="M6 8v9"/></svg>
+    Private Rooms
+  </div>
+  <div class="cat-chip" onclick="setcat(this)">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 22V6l5-4 5 4 5-4 5 4v16"/><line x1="2" y1="11" x2="22" y2="11"/><path d="M10 22v-5h4v5"/></svg>
+    Heritage Havelis
+  </div>
+  <div class="cat-chip" onclick="setcat(this)">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3l4 8 5-5 5 15H2L8 3z"/></svg>
+    Hill Cottages
+  </div>
+  <div class="cat-chip" onclick="setcat(this)">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg>
+    New Projects
+  </div>
+</div>
+
+<!-- ═══════════ PAGE BODY ═══════════ -->
+<div class="page-body">
+
+  <!-- ─── SIDEBAR ─── -->
+  <aside class="sidebar">
+
+    <!-- Purpose -->
+    <div class="sb-section-head" onclick="toggleSec(this)">
+      Purpose
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+    </div>
+    <div class="sb-body" style="max-height:60px">
+      <div class="pill-row">
+        <div class="pill on" onclick="setPill(this)">For Sale</div>
+        <div class="pill" onclick="setPill(this)">For Rent</div>
+      </div>
+    </div>
+    <div class="sb-sep"></div>
+
+    <!-- Location -->
+    <div class="sb-section-head" onclick="toggleSec(this)">
+      Location
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+    </div>
+    <div class="sb-body" style="max-height:240px">
+      <div class="f-row" onclick="toggleCheck(this)">
+        <div class="f-label">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          DHA Phase 2
+        </div>
+        <div class="f-right"><span class="f-count">142</span><div class="checkbox on"></div></div>
+      </div>
+      <div class="f-row" onclick="toggleCheck(this)">
+        <div class="f-label"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>F-10 Markaz</div>
+        <div class="f-right"><span class="f-count">88</span><div class="checkbox"></div></div>
+      </div>
+      <div class="f-row" onclick="toggleCheck(this)">
+        <div class="f-label"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>G-9 / G-10</div>
+        <div class="f-right"><span class="f-count">112</span><div class="checkbox"></div></div>
+      </div>
+      <div class="f-row" onclick="toggleCheck(this)">
+        <div class="f-label"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Bahria Town</div>
+        <div class="f-right"><span class="f-count">340</span><div class="checkbox on"></div></div>
+      </div>
+      <div class="f-row" onclick="toggleCheck(this)">
+        <div class="f-label"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Blue Area</div>
+        <div class="f-right"><span class="f-count">46</span><div class="checkbox"></div></div>
+      </div>
+      <div class="f-row" onclick="toggleCheck(this)">
+        <div class="f-label"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Gulberg, Lahore</div>
+        <div class="f-right"><span class="f-count">263</span><div class="checkbox"></div></div>
+      </div>
+    </div>
+    <div class="sb-sep"></div>
+
+    <!-- Price -->
+    <div class="sb-section-head" onclick="toggleSec(this)">
+      Price (PKR)
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+    </div>
+    <div class="sb-body" style="max-height:130px">
+      <div class="price-inputs">
+        <div class="pi-wrap"><div class="pi-prefix">₨</div><input type="number" value="5000000" placeholder="Min" /></div>
+        <div class="pi-wrap"><div class="pi-prefix">₨</div><input type="number" value="100000000" placeholder="Max" /></div>
+      </div>
+      <div class="range-wrap">
+        <div class="range-track">
+          <div class="range-fill"></div>
+          <div class="range-thumb l"></div>
+          <div class="range-thumb r"></div>
+        </div>
+      </div>
+    </div>
+    <div class="sb-sep"></div>
+
+    <!-- Property Type -->
+    <div class="sb-section-head" onclick="toggleSec(this)">
+      Property Type
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+    </div>
+    <div class="sb-body" style="max-height:260px">
+      <div class="f-row" onclick="toggleCheck(this)">
+        <div class="f-label"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>House</div>
+        <div class="f-right"><span class="f-count">412</span><div class="checkbox on"></div></div>
+      </div>
+      <div class="f-row" onclick="toggleCheck(this)">
+        <div class="f-label"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4"/></svg>Apartment / Flat</div>
+        <div class="f-right"><span class="f-count">328</span><div class="checkbox"></div></div>
+      </div>
+      <div class="f-row" onclick="toggleCheck(this)">
+        <div class="f-label"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 21 21 21 21 7 12 3 3 7 3 21"/></svg>Plot / Land</div>
+        <div class="f-right"><span class="f-count">589</span><div class="checkbox on"></div></div>
+      </div>
+      <div class="f-row" onclick="toggleCheck(this)">
+        <div class="f-label"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="1"/><line x1="3" y1="9" x2="21" y2="9"/></svg>Commercial</div>
+        <div class="f-right"><span class="f-count">94</span><div class="checkbox"></div></div>
+      </div>
+      <div class="f-row" onclick="toggleCheck(this)">
+        <div class="f-label"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 22V11L12 2l10 9v11"/><path d="M2 11h20"/></svg>Farmhouse</div>
+        <div class="f-right"><span class="f-count">23</span><div class="checkbox"></div></div>
+      </div>
+      <div class="f-row" onclick="toggleCheck(this)">
+        <div class="f-label"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4v16"/><path d="M2 8h18a2 2 0 0 1 2 2v10"/></svg>Private Room</div>
+        <div class="f-right"><span class="f-count">17</span><div class="checkbox"></div></div>
+      </div>
+    </div>
+    <div class="sb-sep"></div>
+
+    <!-- Bedrooms -->
+    <div class="sb-section-head" onclick="toggleSec(this)">
+      Bedrooms
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+    </div>
+    <div class="sb-body" style="max-height:70px">
+      <div class="pill-row">
+        <div class="pill" onclick="setPill(this)">Any</div>
+        <div class="pill" onclick="setPill(this)">1+</div>
+        <div class="pill" onclick="setPill(this)">2+</div>
+        <div class="pill on" onclick="setPill(this)">3+</div>
+        <div class="pill" onclick="setPill(this)">4+</div>
+        <div class="pill" onclick="setPill(this)">5+</div>
+      </div>
+    </div>
+    <div class="sb-sep"></div>
+
+    <!-- Bathrooms -->
+    <div class="sb-section-head" onclick="toggleSec(this)">
+      Bathrooms
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+    </div>
+    <div class="sb-body" style="max-height:70px">
+      <div class="pill-row">
+        <div class="pill" onclick="setPill(this)">Any</div>
+        <div class="pill on" onclick="setPill(this)">1+</div>
+        <div class="pill" onclick="setPill(this)">2+</div>
+        <div class="pill" onclick="setPill(this)">3+</div>
+        <div class="pill" onclick="setPill(this)">4+</div>
+      </div>
+    </div>
+    <div class="sb-sep"></div>
+
+    <!-- Area -->
+    <div class="sb-section-head" onclick="toggleSec(this)">
+      Area (Marla / Kanal)
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+    </div>
+    <div class="sb-body" style="max-height:70px">
+      <div class="pill-row">
+        <div class="pill" onclick="setPill(this)">Any</div>
+        <div class="pill on" onclick="setPill(this)">3-5 M</div>
+        <div class="pill" onclick="setPill(this)">5-10 M</div>
+        <div class="pill" onclick="setPill(this)">1 K</div>
+        <div class="pill" onclick="setPill(this)">2 K+</div>
+      </div>
+    </div>
+    <div class="sb-sep"></div>
+
+    <!-- Features -->
+    <div class="sb-section-head" onclick="toggleSec(this)">
+      Features
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+    </div>
+    <div class="sb-body" style="max-height:140px">
+      <div class="amenity-wrap">
+        <div class="a-chip on"  onclick="this.classList.toggle('on')">Corner</div>
+        <div class="a-chip on"  onclick="this.classList.toggle('on')">Park Facing</div>
+        <div class="a-chip"     onclick="this.classList.toggle('on')">Main Boulevard</div>
+        <div class="a-chip"     onclick="this.classList.toggle('on')">Possession Ready</div>
+        <div class="a-chip"     onclick="this.classList.toggle('on')">Servant Qtr</div>
+        <div class="a-chip"     onclick="this.classList.toggle('on')">Generator</div>
+        <div class="a-chip"     onclick="this.classList.toggle('on')">Solar</div>
+        <div class="a-chip"     onclick="this.classList.toggle('on')">Lawn</div>
+        <div class="a-chip"     onclick="this.classList.toggle('on')">CCTV</div>
+        <div class="a-chip"     onclick="this.classList.toggle('on')">Lift</div>
+      </div>
+    </div>
+    <div class="sb-sep"></div>
+
+    <!-- Trust -->
+    <div class="sb-section-head" style="cursor:default; pointer-events:none;">
+      Trust &amp; Verification
+    </div>
+    <div class="tgl-row">
+      <span class="tgl-lbl">CNIC Verified Owner</span>
+      <div class="tgl on" onclick="this.classList.toggle('on')"></div>
+    </div>
+    <div class="tgl-row">
+      <span class="tgl-lbl">PP Inspected Property</span>
+      <div class="tgl on" onclick="this.classList.toggle('on')"></div>
+    </div>
+    <div class="tgl-row">
+      <span class="tgl-lbl">Featured Ads Only</span>
+      <div class="tgl" onclick="this.classList.toggle('on')"></div>
+    </div>
+    <div class="tgl-row">
+      <span class="tgl-lbl">Has Video Tour</span>
+      <div class="tgl" onclick="this.classList.toggle('on')"></div>
+    </div>
+    <div style="height:4px;"></div>
+  </aside>
+
+  <div class="sb-footer">
+    <button class="btn-reset" onclick="PP.toast('Filters cleared')">Reset</button>
+    <button class="btn-apply" onclick="PP.toast('Showing 1,247 properties')">Show 1,247 Properties</button>
+  </div>
+
+  <!-- ─── MAIN ─── -->
+  <main class="main">
+    <div class="results-header">
+      <div class="results-title">
+        Properties for Sale in Islamabad
+        <span>1,247 listings found</span>
+      </div>
+      <div class="results-ctrl">
+        <select class="sort-sel">
+          <option>Sort: Most Relevant</option>
+          <option>Newest First</option>
+          <option>Price: Low to High</option>
+          <option>Price: High to Low</option>
+          <option>Area: Largest</option>
+          <option>Top Rated Agents</option>
+        </select>
+        <div class="view-btns">
+          <button class="view-btn on" id="viewGrid" title="Grid view" onclick="setViewMode('grid')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          </button>
+          <button class="view-btn" id="viewList" title="List view" onclick="setViewMode('list')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          </button>
+        </div>
+        <button class="map-btn on" id="mapBtn" onclick="toggleMap()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l6-3 6 3 6-3v13l-6 3-6-3-6 3V7z"/><line x1="9" y1="4" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="20"/></svg>
+          Hide Map
+        </button>
+      </div>
+    </div>
+
+    <div class="active-tags">
+      <div class="a-tag">Islamabad <span class="rm" onclick="this.parentElement.remove()">×</span></div>
+      <div class="a-tag">For Sale <span class="rm" onclick="this.parentElement.remove()">×</span></div>
+      <div class="a-tag">House, Plot <span class="rm" onclick="this.parentElement.remove()">×</span></div>
+      <div class="a-tag">3+ Beds <span class="rm" onclick="this.parentElement.remove()">×</span></div>
+      <div class="a-tag">DHA, Bahria <span class="rm" onclick="this.parentElement.remove()">×</span></div>
+      <div class="a-tag">CNIC Verified <span class="rm" onclick="this.parentElement.remove()">×</span></div>
+    </div>
+
+    <div class="listings-wrap">
+      <div class="grid-col">
+        <div class="prop-grid" id="propGrid"></div>
+        <div class="load-row">
+          <button class="btn-load" onclick="PP.toast('Loading more…')">
+            Load more properties
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="map-col on" id="mapCol">
+        <div id="leafletMap"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="/pprealestate/assets/pp.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+function setcat(el){ document.querySelectorAll('.cat-chip').forEach(c=>c.classList.remove('active')); el.classList.add('active'); }
+function setPill(el){ el.parentElement.querySelectorAll('.pill').forEach(p=>p.classList.remove('on')); el.classList.add('on'); }
+function toggleCheck(row){ row.querySelector('.checkbox').classList.toggle('on'); }
+function toggleSec(head){
+  head.classList.toggle('collapsed');
+  const body = head.nextElementSibling;
+  if (head.classList.contains('collapsed')) body.style.maxHeight = '0';
+  else body.style.maxHeight = body.dataset.h || '260px';
+}
+
+// ─── VIEW MODE (grid / list) ───
+let currentView = 'grid';
+function setViewMode(mode){
+  currentView = mode;
+  document.getElementById('viewGrid').classList.toggle('on', mode === 'grid');
+  document.getElementById('viewList').classList.toggle('on', mode === 'list');
+  const g = document.getElementById('propGrid');
+  g.className = mode === 'list' ? 'prop-list' : 'prop-grid';
+  renderCards();
+}
+
+// ─── RENDER LISTING CARDS ───
+function badgeClass(b){
+  if (b === 'CNIC Verified') return 'badge-v';
+  if (b === 'PP Inspected')  return 'badge-i';
+  if (b === 'New Listing')   return 'badge-new';
+  return 'badge-new';
+}
+function cardHTML(l, featured){
+  return `
+    <div class="card ${featured?'featured':''}" data-id="${l.id}" onclick="selectListing(${l.id}, true)">
+      <div class="c-img">
+        <img src="${l.images[0]}" alt="${l.short}" loading="lazy" />
+        <div class="badge-row">
+          ${(l.badges||[]).map(b => `<span class="badge ${badgeClass(b)}">${b}</span>`).join('')}
+          ${l.purpose==='rent' ? '<span class="badge badge-rent">For Rent</span>' : ''}
+        </div>
+        <div class="heart" onclick="event.stopPropagation();this.classList.toggle('on');PP.toast(this.classList.contains('on')?'Saved':'Removed')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        </div>
+        <div class="dist-tag">${l.images.length} photos</div>
+      </div>
+      <div class="c-body">
+        <div class="c-top">
+          <div class="c-title">${l.title}</div>
+          <div class="c-rating"><span class="star">★</span><span class="r-val">${l.rating}</span><span class="r-cnt">(${l.reviews})</span></div>
+        </div>
+        <div class="c-loc">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          ${l.loc}
+        </div>
+        <div class="specs">
+          ${l.bedrooms > 0 ? `<div class="spec"><div class="sv">${l.bedrooms}</div><div class="sl">Beds</div></div>` : ''}
+          ${l.bathrooms > 0 ? `<div class="spec"><div class="sv">${l.bathrooms}</div><div class="sl">Baths</div></div>` : ''}
+          <div class="spec"><div class="sv">${l.sizeText}</div><div class="sl">${l.purpose==='sale'?'Size':'Area'}</div></div>
+          <div class="spec"><div class="sv">${l.type}</div><div class="sl">Type</div></div>
+        </div>
+        <div class="c-foot">
+          <div class="price-block">
+            <div class="p-main">${l.priceLabel}</div>
+            <div class="p-note">${l.priceSuffix ? l.priceSuffix : 'for sale · PKR'}</div>
+          </div>
+          <button class="book-btn" onclick="event.stopPropagation();location.href='/pprealestate/listing.html?id=${l.id}'">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.45 2 2 0 0 1 3.59 1.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.78a16 16 0 0 0 6.29 6.29l1.04-.87a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            Contact
+          </button>
+        </div>
+      </div>
+    </div>`;
+}
+function renderCards(){
+  const g = document.getElementById('propGrid');
+  g.innerHTML = window.PP.listings.map((l, i) => cardHTML(l, currentView==='grid' && i===0)).join('');
+  // Mark first card as selected
+  const first = g.querySelector('.card');
+  if (first) first.classList.add('selected');
+}
+renderCards();
+
+// ─── LEAFLET MAP ───
+let map = null, markers = [], mapOn = true;
+
+function selectListing(id, navigate){
+  document.querySelectorAll('.card').forEach(c => c.classList.toggle('selected', Number(c.dataset.id) === id));
+  let selected = null;
+  markers.forEach(m => {
+    const isOn = m._ppListing.id === id;
+    m.setIcon(PP.avatarPin(m._ppListing, isOn));
+    if (isOn) selected = m;
+  });
+  if (selected && map) {
+    map.panTo(selected.getLatLng(), { animate: true });
+    selected.openTooltip();
+  }
+  if (navigate) setTimeout(() => location.href = '/pprealestate/listing.html?id=' + id, 260);
+}
+
+// ─── NEARBY AMENITIES — live Overpass + OSRM routing ───
+const poiEmoji  = { school:'🎓', hospital:'🏥', mosque:'🕌', park:'🌳', market:'🛒', bank:'🏦', restaurant:'🍽️', transport:'🚌', pharmacy:'💊', cafe:'☕' };
+const poiColor  = { school:'#2563eb', hospital:'#dc2626', mosque:'#059669', park:'#16a34a', market:'#d97706', bank:'#1e40af', restaurant:'#b45309', transport:'#7c3aed', pharmacy:'#0891b2', cafe:'#92400e' };
+
+function haversineKm(la1,ln1,la2,ln2){
+  const R=6371, dL=(la2-la1)*Math.PI/180, dN=(ln2-ln1)*Math.PI/180;
+  const a=Math.sin(dL/2)**2+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dN/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+function fmtDist(km){ return km<1 ? Math.round(km*1000)+' m' : km.toFixed(1)+' km'; }
+
+function osmPoiType(tags){
+  const a=tags.amenity, l=tags.leisure, s=tags.shop, h=tags.highway;
+  if(['school','kindergarten','college','university'].includes(a)) return 'school';
+  if(['hospital','clinic'].includes(a))   return 'hospital';
+  if(a==='pharmacy')                       return 'pharmacy';
+  if(a==='place_of_worship')              return 'mosque';
+  if(['bank','atm'].includes(a))          return 'bank';
+  if(['restaurant','fast_food'].includes(a)) return 'restaurant';
+  if(a==='cafe')                           return 'cafe';
+  if(['park','garden'].includes(l))       return 'park';
+  if(['supermarket','grocery','mall'].includes(s)) return 'market';
+  if(h==='bus_stop')                       return 'transport';
+  return null;
+}
+
+// CORS-safe fetch: tries direct, then falls back through corsproxy.io
+async function xfetch(url){
+  try {
+    const r = await fetch(url);
+    if(r.ok) return r;
+    throw new Error('not ok');
+  } catch(e) {
+    return fetch('https://corsproxy.io/?' + encodeURIComponent(url));
+  }
+}
+
+async function fetchNearbyFromOSM(lat, lng){
+  const q=`[out:json][timeout:20];(
+    node["amenity"~"^(school|hospital|clinic|pharmacy|place_of_worship|bank|restaurant|fast_food|cafe)$"](around:1200,${lat},${lng});
+    node["leisure"~"^(park|garden)$"](around:1200,${lat},${lng});
+    node["shop"~"^(supermarket|grocery|mall)$"](around:1200,${lat},${lng});
+    node["highway"="bus_stop"](around:900,${lat},${lng});
+  );out 50;`;
+  const res = await xfetch('https://overpass-api.de/api/interpreter?data='+encodeURIComponent(q));
+  const data = await res.json();
+  const seen={}, pois=[];
+  for(const n of (data.elements||[])){
+    const type = osmPoiType(n.tags||{});
+    if(!type||seen[type]) continue;
+    const name = n.tags.name || n.tags['name:en'] || n.tags['name:ur'] || (type[0].toUpperCase()+type.slice(1));
+    pois.push({ type, name, lat:n.lat, lng:n.lon, dist:haversineKm(lat,lng,n.lat,n.lon) });
+    seen[type]=true;
+    if(pois.length>=6) break;
+  }
+  return pois.sort((a,b)=>a.dist-b.dist);
+}
+
+async function fetchOSRMRoute(fLat,fLng,tLat,tLng){
+  try{
+    const url=`https://router.project-osrm.org/route/v1/driving/${fLng},${fLat};${tLng},${tLat}?overview=full&geometries=geojson`;
+    const r = await xfetch(url);
+    const d = await r.json();
+    if(d.code!=='Ok') return null;
+    return {
+      coords: d.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]),
+      distKm: d.routes[0].distance/1000
+    };
+  }catch(e){ return null; }
+}
+
+let poiLayers=[], pinnedId=null;
+
+function clearNearby(force){
+  if(!force && pinnedId!==null) return;
+  pinnedId=null;
+  poiLayers.forEach(l=>map.removeLayer(l));
+  poiLayers=[];
+}
+
+async function showNearby(listing, pin){
+  clearNearby(true);
+  if(pin) pinnedId=listing.id;
+
+  // loading bubble
+  const loadIcon=L.divIcon({ className:'', iconAnchor:[56,36],
+    html:`<div style="background:#fff;border-radius:20px;padding:6px 14px;font-size:12px;font-weight:700;color:#1a6b2a;box-shadow:0 2px 10px rgba(0,0,0,.18);white-space:nowrap">
+      <svg style="vertical-align:-3px;margin-right:4px" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Finding nearby…</div>`
+  });
+  const loadM=L.marker([listing.lat,listing.lng],{icon:loadIcon,interactive:false,zIndexOffset:600}).addTo(map);
+  poiLayers.push(loadM);
+
+  try {
+    const pois = await fetchNearbyFromOSM(listing.lat, listing.lng);
+    map.removeLayer(loadM);
+    poiLayers=poiLayers.filter(x=>x!==loadM);
+
+    // fetch all routes in parallel
+    const routes = await Promise.all(pois.map(p=>fetchOSRMRoute(listing.lat,listing.lng,p.lat,p.lng)));
+
+    pois.forEach((poi,i)=>{
+      const route=routes[i];
+      const distStr=route ? fmtDist(route.distKm) : fmtDist(poi.dist);
+      const color=poiColor[poi.type]||'#1a6b2a';
+
+      // route polyline (or fallback dashed straight line)
+      const roadLine = route
+        ? L.polyline(route.coords,{color,weight:3,opacity:.75,lineJoin:'round'})
+        : L.polyline([[listing.lat,listing.lng],[poi.lat,poi.lng]],{color,weight:2,dashArray:'6,4',opacity:.6});
+      roadLine.addTo(map);
+      poiLayers.push(roadLine);
+
+      // distance label at route midpoint
+      const mid = route ? route.coords[Math.floor(route.coords.length/2)] : [(listing.lat+poi.lat)/2,(listing.lng+poi.lng)/2];
+      const lblIcon=L.divIcon({ className:'', iconAnchor:[22,9],
+        html:`<div class="poi-dist-label" style="border-left:3px solid ${color}">${distStr}</div>`
+      });
+      const lblM=L.marker(mid,{icon:lblIcon,interactive:false,zIndexOffset:-200}).addTo(map);
+      poiLayers.push(lblM);
+
+      // POI marker
+      const pinIcon=L.divIcon({ className:'poi-wrap', iconAnchor:[0,12],
+        html:`<div class="poi-pin poi-${poi.type}"><span class="poi-icon">${poiEmoji[poi.type]||'📍'}</span>${poi.name}</div>`
+      });
+      const pm=L.marker([poi.lat,poi.lng],{icon:pinIcon,zIndexOffset:100}).addTo(map);
+      pm.bindTooltip(`<b>${poi.name}</b><br><span style="color:#6B7280;font-size:11px">${distStr} by road</span>`,{direction:'top',offset:[0,-8]});
+      poiLayers.push(pm);
+    });
+
+  } catch(e){
+    map.removeLayer(loadM);
+    poiLayers=poiLayers.filter(x=>x!==loadM);
+    PP.toast('Could not load nearby amenities');
+  }
+}
+
+function initMap(){
+  if (map) return;
+  map = L.map('leafletMap', { zoomControl: true, scrollWheelZoom: true })
+         .setView([33.7065, 73.040], 10);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+
+  window.PP.listings.forEach((l, i) => {
+    const m = L.marker([l.lat, l.lng], { icon: PP.avatarPin(l, i===0), riseOnHover: true }).addTo(map);
+    m._ppListing = l;
+    m.bindTooltip(PP.hoverCardHTML(l), {
+      className: 'ps-map-tip',
+      direction: 'top',
+      offset: [0, -22],
+      opacity: 1,
+      sticky: false
+    });
+    m.on('click', (e) => { L.DomEvent.stopPropagation(e); showNearby(l, true); selectListing(l.id, false); });
+    m.on('dblclick', () => location.href = '/pprealestate/listing.html?id=' + l.id);
+    markers.push(m);
+  });
+
+  const group = L.featureGroup(markers);
+  map.fitBounds(group.getBounds().pad(0.18));
+
+  // click on empty map space → unpin nearby
+  map.on('click', () => clearNearby(true));
+}
+
+function toggleMap(){
+  mapOn = !mapOn;
+  document.getElementById('mapCol').classList.toggle('on', mapOn);
+  const b = document.getElementById('mapBtn');
+  b.classList.toggle('on', mapOn);
+  b.innerHTML = mapOn
+    ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l6-3 6 3 6-3v13l-6 3-6-3-6 3V7z"/><line x1="9" y1="4" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="20"/></svg> Hide Map`
+    : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l6-3 6 3 6-3v13l-6 3-6-3-6 3V7z"/><line x1="9" y1="4" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="20"/></svg> Show Map`;
+  if (mapOn) setTimeout(() => { initMap(); map && map.invalidateSize(); }, 120);
+}
+
+// Map is on by default — init after Leaflet loads
+setTimeout(() => { initMap(); map && map.invalidateSize(); }, 120);
+</script>
+</body>
+</html>

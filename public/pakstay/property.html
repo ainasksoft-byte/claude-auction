@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PakistanProperty.com — Buy, Rent &amp; Sell Properties</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/pakstay/assets/pakstay.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<style>
+/* ===== PROPERTY PORTAL OVERRIDES ===== */
+:root {
+  --header-h: 64px;
+}
+
+/* ─── TOP NAV ─── */
+.prop-nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+  height: var(--header-h);
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center;
+  padding: 0 32px; gap: 20px;
+}
+.prop-nav .logo-name { font-size: 15px; }
+.prop-nav .logo-by   { font-size: 9.5px; }
+.nav-links { display: flex; align-items: center; gap: 2px; margin-left: 12px; }
+.nav-link {
+  padding: 7px 13px; border-radius: var(--radius-sm);
+  font-size: 13px; font-weight: 500; color: var(--text-mid);
+  transition: background .15s, color .15s; white-space: nowrap;
+}
+.nav-link:hover { background: var(--green-faint); color: var(--green); }
+.nav-link.active { color: var(--green); font-weight: 700; background: var(--green-faint); }
+.nav-spacer { flex: 1; }
+.nav-post {
+  padding: 8px 18px; border-radius: var(--radius-sm);
+  background: var(--green); color: #fff;
+  font-size: 13px; font-weight: 700;
+  transition: background .15s; white-space: nowrap;
+}
+.nav-post:hover { background: var(--green-hover); }
+.nav-avatar {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: var(--green-light); border: 1.5px solid var(--green);
+  color: var(--green); font-size: 13px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+
+/* ─── HERO ─── */
+.hero {
+  margin-top: var(--header-h);
+  background: linear-gradient(135deg, #0f4d1f 0%, var(--green) 55%, #1a8c35 100%);
+  padding: 72px 32px 80px;
+  text-align: center; position: relative; overflow: hidden;
+}
+.hero::before {
+  content:''; position:absolute; right:-120px; top:-60px;
+  width:400px; height:400px; border-radius:50%; background:rgba(255,255,255,.05);
+}
+.hero::after {
+  content:''; position:absolute; left:-80px; bottom:-80px;
+  width:300px; height:300px; border-radius:50%; background:rgba(255,255,255,.06);
+}
+.hero-inner { position:relative; z-index:1; max-width: 780px; margin: 0 auto; }
+.hero-eyebrow {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.25);
+  border-radius: 50px; padding: 5px 14px;
+  font-size: 12px; font-weight: 600; color: rgba(255,255,255,.9);
+  margin-bottom: 18px; backdrop-filter: blur(4px);
+}
+.hero h1 {
+  font-size: 44px; font-weight: 800; color: #fff;
+  line-height: 1.12; letter-spacing: -.8px; margin-bottom: 14px;
+}
+.hero h1 em { color: rgba(255,255,255,.65); font-style: normal; }
+.hero-sub { font-size: 16px; color: rgba(255,255,255,.78); margin-bottom: 36px; font-weight: 400; line-height: 1.5; }
+
+/* Search box */
+.hero-search {
+  background: var(--white); border-radius: var(--radius-lg);
+  box-shadow: 0 20px 60px rgba(0,0,0,.22);
+  overflow: hidden;
+}
+.hs-tabs {
+  display: flex; border-bottom: 1px solid var(--border);
+}
+.hs-tab {
+  flex: 1; padding: 14px; text-align: center;
+  font-size: 13.5px; font-weight: 700; color: var(--text-muted);
+  cursor: pointer; transition: all .15s; border-bottom: 3px solid transparent;
+  margin-bottom: -1px;
+}
+.hs-tab.active { color: var(--green); border-bottom-color: var(--green); background: var(--green-faint); }
+.hs-tab:hover:not(.active) { color: var(--text-high); background: var(--bg); }
+.hs-body { padding: 20px; display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+.hs-field { flex: 1; min-width: 160px; }
+.hs-field label { display: block; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+.hs-field select, .hs-field input {
+  width: 100%; padding: 10px 12px; border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm); font-size: 13.5px; color: var(--text-high);
+  background: var(--white); outline: none; transition: border-color .15s;
+}
+.hs-field select:focus, .hs-field input:focus { border-color: var(--green); }
+.hs-go {
+  flex-shrink: 0; padding: 10px 28px; background: var(--green); color: #fff;
+  border-radius: var(--radius-sm); font-size: 14px; font-weight: 800;
+  transition: background .15s; display: flex; align-items: center; gap: 8px;
+  white-space: nowrap;
+}
+.hs-go:hover { background: var(--green-hover); }
+
+/* Stats bar */
+.stats-bar {
+  background: var(--white); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center; gap: 0;
+  padding: 0 32px;
+}
+.stat-item {
+  padding: 16px 28px; text-align: center; border-right: 1px solid var(--border);
+  flex: 0 0 auto;
+}
+.stat-item:last-child { border-right: none; }
+.stat-item .v { font-size: 20px; font-weight: 800; color: var(--green); line-height: 1; }
+.stat-item .l { font-size: 11.5px; color: var(--text-muted); margin-top: 3px; font-weight: 500; }
+
+/* ─── CONTENT WRAPPER ─── */
+.prop-wrap { max-width: 1280px; margin: 0 auto; padding: 0 28px; }
+
+/* ─── SECTION HEADER ─── */
+.sec-head {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  padding: 42px 0 20px;
+}
+.sec-head-left {}
+.sec-label {
+  font-size: 11px; font-weight: 700; color: var(--green);
+  text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;
+}
+.sec-title { font-size: 24px; font-weight: 800; color: var(--text-high); letter-spacing: -.3px; }
+.sec-sub { font-size: 13.5px; color: var(--text-muted); margin-top: 4px; }
+.sec-more {
+  font-size: 13px; font-weight: 700; color: var(--green);
+  display: flex; align-items: center; gap: 5px; flex-shrink: 0;
+  padding: 8px 16px; border: 1.5px solid var(--green);
+  border-radius: var(--radius-sm); transition: all .15s;
+}
+.sec-more:hover { background: var(--green); color: #fff; }
+
+/* ─── FEATURED LISTINGS ─── */
+.listing-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;
+  margin-bottom: 8px;
+}
+@media (max-width: 1024px) { .listing-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 640px)  { .listing-grid { grid-template-columns: 1fr; } }
+
+.prop-card {
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); overflow: hidden;
+  transition: box-shadow .2s, transform .2s; cursor: pointer;
+}
+.prop-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-2px); }
+.prop-card.featured { border-color: rgba(26,107,42,.35); box-shadow: 0 0 0 1px rgba(26,107,42,.12); }
+
+.pc-img {
+  position: relative; height: 200px;
+  background: #ddd; background-size: cover; background-position: center;
+  overflow: hidden;
+}
+.pc-img-placeholder {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 40px; opacity: .18;
+}
+.pc-badges {
+  position: absolute; top: 10px; left: 10px;
+  display: flex; gap: 5px; flex-wrap: wrap;
+}
+.pc-badge {
+  padding: 3px 9px; border-radius: 5px;
+  font-size: 10.5px; font-weight: 800; letter-spacing: .2px;
+  backdrop-filter: blur(6px);
+}
+.pc-badge.featured { background: rgba(26,107,42,.92); color: #fff; }
+.pc-badge.verified { background: rgba(255,255,255,.92); color: var(--green); border: 1px solid rgba(26,107,42,.3); }
+.pc-badge.hot      { background: rgba(239,68,68,.92); color: #fff; }
+.pc-badge.new      { background: rgba(59,130,246,.92); color: #fff; }
+.pc-badge.rent     { background: rgba(17,24,39,.82); color: #fff; }
+.pc-save {
+  position: absolute; top: 10px; right: 10px;
+  width: 32px; height: 32px; border-radius: 50%;
+  background: rgba(255,255,255,.92); backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  transition: all .15s; color: var(--text-muted);
+}
+.pc-save:hover { background: #fff; color: #ef4444; }
+.pc-save.saved { color: #ef4444; }
+.pc-photo-count {
+  position: absolute; bottom: 10px; right: 10px;
+  background: rgba(17,24,39,.75); color: #fff;
+  padding: 3px 9px; border-radius: 5px; font-size: 11px; font-weight: 600;
+  display: flex; align-items: center; gap: 5px;
+}
+
+.pc-body { padding: 16px; }
+.pc-price {
+  font-size: 20px; font-weight: 800; color: var(--green); line-height: 1;
+  margin-bottom: 5px;
+}
+.pc-price span { font-size: 13px; font-weight: 500; color: var(--text-muted); }
+.pc-title {
+  font-size: 14px; font-weight: 700; color: var(--text-high);
+  margin-bottom: 4px; line-height: 1.35;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.pc-loc {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 12px; color: var(--text-muted); margin-bottom: 12px;
+}
+.pc-loc svg { flex-shrink: 0; opacity: .6; }
+.pc-specs {
+  display: flex; gap: 12px; padding: 10px 0;
+  border-top: 1px solid var(--border-faint); border-bottom: 1px solid var(--border-faint);
+  margin-bottom: 12px;
+}
+.pc-spec {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 12px; color: var(--text-mid); font-weight: 600;
+}
+.pc-spec svg { opacity: .55; flex-shrink: 0; }
+.pc-agent { display: flex; align-items: center; gap: 9px; }
+.pc-agent-av {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--green-light); color: var(--green);
+  font-size: 11.5px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.pc-agent-info { flex: 1; min-width: 0; }
+.pc-agent-name { font-size: 12px; font-weight: 700; color: var(--text-high); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pc-agent-agency { font-size: 10.5px; color: var(--text-muted); }
+.pc-agent-actions { display: flex; gap: 6px; }
+.pc-call, .pc-msg {
+  width: 28px; height: 28px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .15s; flex-shrink: 0;
+}
+.pc-call { background: var(--green-faint); color: var(--green); }
+.pc-call:hover { background: var(--green); color: #fff; }
+.pc-msg { background: var(--border-faint); color: var(--text-mid); }
+.pc-msg:hover { background: var(--text-high); color: #fff; }
+
+/* ─── CITY BROWSE ─── */
+.city-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+@media (max-width: 900px) { .city-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 500px) { .city-grid { grid-template-columns: 1fr 1fr; } }
+
+.city-card {
+  border-radius: var(--radius-lg); overflow: hidden;
+  position: relative; height: 140px; cursor: pointer;
+  transition: transform .2s, box-shadow .2s;
+}
+.city-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+.city-card .bg {
+  position: absolute; inset: 0;
+  background-size: cover; background-position: center;
+  transition: transform .3s;
+}
+.city-card:hover .bg { transform: scale(1.04); }
+.city-card .overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,.05) 0%, rgba(0,0,0,.68) 100%);
+}
+.city-card .info {
+  position: absolute; bottom: 14px; left: 14px; right: 14px;
+}
+.city-card .c-name { font-size: 16px; font-weight: 800; color: #fff; line-height: 1; margin-bottom: 3px; }
+.city-card .c-count { font-size: 11.5px; color: rgba(255,255,255,.8); font-weight: 500; }
+
+/* City card bg gradients (placeholder colors) */
+.city-isb { background: linear-gradient(135deg, #1a6b2a 0%, #0d4016 100%); }
+.city-lhr { background: linear-gradient(135deg, #b45309 0%, #78350f 100%); }
+.city-khi { background: linear-gradient(135deg, #0369a1 0%, #1e3a8a 100%); }
+.city-rwp { background: linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%); }
+.city-mur { background: linear-gradient(135deg, #0f766e 0%, #134e4a 100%); }
+.city-fsd { background: linear-gradient(135deg, #b91c1c 0%, #7f1d1d 100%); }
+.city-mul { background: linear-gradient(135deg, #b45309 0%, #451a03 100%); }
+.city-psh { background: linear-gradient(135deg, #374151 0%, #111827 100%); }
+
+/* ─── AGENTS SECTION ─── */
+.agents-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+@media (max-width: 1024px) { .agents-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 500px)  { .agents-grid { grid-template-columns: 1fr; } }
+
+.agent-card {
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 20px;
+  transition: box-shadow .2s; text-align: center;
+}
+.agent-card:hover { box-shadow: var(--shadow-md); }
+.ag-av-wrap { position: relative; display: inline-block; margin-bottom: 12px; }
+.ag-av {
+  width: 72px; height: 72px; border-radius: 50%;
+  background: var(--green-light); color: var(--green);
+  font-size: 22px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto;
+  border: 2.5px solid var(--border);
+}
+.ag-verified {
+  position: absolute; bottom: 0; right: -4px;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--green); border: 2px solid #fff;
+  display: flex; align-items: center; justify-content: center;
+}
+.ag-name { font-size: 14px; font-weight: 800; color: var(--text-high); margin-bottom: 2px; }
+.ag-agency { font-size: 11.5px; color: var(--text-muted); margin-bottom: 10px; }
+.ag-stats { display: flex; justify-content: center; gap: 16px; margin-bottom: 14px; }
+.ag-stat .v { font-size: 15px; font-weight: 800; color: var(--text-high); line-height: 1; }
+.ag-stat .l { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+.ag-actions { display: flex; gap: 8px; }
+.ag-btn {
+  flex: 1; padding: 8px; border-radius: var(--radius-sm);
+  font-size: 12px; font-weight: 700; transition: all .15s;
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+}
+.ag-btn-call { background: var(--green); color: #fff; }
+.ag-btn-call:hover { background: var(--green-hover); }
+.ag-btn-chat { border: 1.5px solid var(--border); color: var(--text-mid); background: var(--white); }
+.ag-btn-chat:hover { border-color: var(--green); color: var(--green); }
+.ag-langs { display: flex; justify-content: center; gap: 5px; margin-bottom: 12px; flex-wrap: wrap; }
+.ag-lang { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 4px; background: var(--green-faint); color: var(--green); }
+
+/* ─── MAP SECTION ─── */
+.map-section { background: var(--white); border-top: 1px solid var(--border); margin-top: 50px; }
+.map-section .prop-wrap { padding-top: 0; }
+.map-section .sec-head { padding-top: 36px; }
+.map-split { display: grid; grid-template-columns: 340px 1fr; gap: 0; height: 540px; border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+@media (max-width: 900px) { .map-split { grid-template-columns: 1fr; } }
+
+.map-sidebar {
+  border-right: 1px solid var(--border); overflow-y: auto;
+  background: var(--white);
+}
+.map-sb-head {
+  padding: 14px 16px; border-bottom: 1px solid var(--border);
+  font-size: 13px; font-weight: 700; color: var(--text-high);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.map-sb-count { font-size: 11.5px; color: var(--text-muted); font-weight: 500; }
+.map-list-item {
+  display: flex; gap: 12px; padding: 12px 16px;
+  border-bottom: 1px solid var(--border-faint); cursor: pointer;
+  transition: background .15s;
+}
+.map-list-item:hover, .map-list-item.active { background: var(--green-faint); }
+.map-li-img {
+  width: 72px; height: 60px; border-radius: var(--radius-sm);
+  flex-shrink: 0; background: #ddd; background-size: cover;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; opacity: .25;
+}
+.map-li-body { flex: 1; min-width: 0; }
+.map-li-price { font-size: 14px; font-weight: 800; color: var(--green); line-height: 1; margin-bottom: 3px; }
+.map-li-title { font-size: 12px; font-weight: 600; color: var(--text-high); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; }
+.map-li-loc   { font-size: 11px; color: var(--text-muted); }
+
+#propMap { flex: 1; height: 100%; min-height: 300px; }
+
+/* ─── RECENT LISTINGS ─── */
+.recent-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+}
+@media (max-width: 1100px) { .recent-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 600px)  { .recent-grid { grid-template-columns: 1fr; } }
+
+.recent-card {
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: var(--radius-md); overflow: hidden;
+  display: flex; gap: 0; cursor: pointer; transition: box-shadow .2s;
+}
+.recent-card:hover { box-shadow: var(--shadow-md); }
+.rc-img {
+  width: 90px; flex-shrink: 0;
+  background: #ddd; background-size: cover; background-position: center;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px; opacity: .2;
+}
+.rc-body { padding: 12px; flex: 1; min-width: 0; }
+.rc-price { font-size: 15px; font-weight: 800; color: var(--green); margin-bottom: 3px; }
+.rc-title { font-size: 12px; font-weight: 600; color: var(--text-high); margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rc-loc { font-size: 11px; color: var(--text-muted); }
+.rc-time { font-size: 10.5px; color: var(--text-faint); margin-top: 5px; }
+
+/* ─── FOOTER ─── */
+.prop-footer {
+  background: var(--text-high); color: rgba(255,255,255,.7);
+  padding: 52px 32px 32px; margin-top: 60px;
+}
+.footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 40px; max-width: 1280px; margin: 0 auto; }
+@media (max-width: 900px) { .footer-grid { grid-template-columns: 1fr 1fr; } }
+.footer-brand .logo-name { color: #fff; font-size: 18px; }
+.footer-brand .logo-by { color: rgba(255,255,255,.5); }
+.footer-brand .logo-mark { background: rgba(255,255,255,.15); }
+.footer-desc { font-size: 13px; color: rgba(255,255,255,.55); margin-top: 12px; line-height: 1.65; max-width: 260px; }
+.footer-col h4 { font-size: 12px; font-weight: 700; color: rgba(255,255,255,.9); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 14px; }
+.footer-col a { display: block; font-size: 13px; color: rgba(255,255,255,.55); margin-bottom: 8px; transition: color .15s; }
+.footer-col a:hover { color: rgba(255,255,255,.9); }
+.footer-bottom { max-width: 1280px; margin: 32px auto 0; padding-top: 20px; border-top: 1px solid rgba(255,255,255,.1); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; font-size: 12px; }
+.footer-social { display: flex; gap: 10px; }
+.footer-social a { width: 34px; height: 34px; border-radius: 8px; background: rgba(255,255,255,.08); display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,.6); transition: background .15s; }
+.footer-social a:hover { background: var(--green); color: #fff; }
+
+/* ─── TRUST STRIP ─── */
+.trust-strip {
+  background: var(--green-faint); border-top: 1px solid rgba(26,107,42,.15); border-bottom: 1px solid rgba(26,107,42,.15);
+  padding: 18px 32px;
+  display: flex; align-items: center; justify-content: center; gap: 36px;
+  flex-wrap: wrap;
+}
+.trust-item { display: flex; align-items: center; gap: 9px; font-size: 13px; font-weight: 600; color: var(--green); }
+.trust-item svg { opacity: .8; }
+
+/* ─── LEAFLET PRICE MARKER ─── */
+.prop-price-pin {
+  background: var(--green); color: #fff;
+  padding: 5px 10px; border-radius: 8px;
+  font-size: 11.5px; font-weight: 800; white-space: nowrap;
+  box-shadow: 0 3px 12px rgba(0,0,0,.3);
+  border: 2px solid #fff;
+  position: relative;
+}
+.prop-price-pin::after {
+  content:''; position: absolute; bottom: -7px; left: 50%;
+  transform: translateX(-50%);
+  border: 4px solid transparent;
+  border-top-color: #fff;
+}
+.prop-price-pin::before {
+  content:''; position: absolute; bottom: -5px; left: 50%;
+  transform: translateX(-50%);
+  border: 4px solid transparent;
+  border-top-color: var(--green);
+  z-index: 1;
+}
+.prop-price-pin.hot { background: #ef4444; }
+.prop-price-pin.hot::before { border-top-color: #ef4444; }
+</style>
+</head>
+<body>
+
+<!-- ===== TOP NAV ===== -->
+<nav class="prop-nav">
+  <a class="logo" href="/pakstay/property.html">
+    <div class="logo-mark">PP</div>
+    <div class="logo-stack">
+      <span class="logo-name">PakistanProperty</span>
+      <span class="logo-by">.com</span>
+    </div>
+  </a>
+  <div class="nav-links">
+    <a class="nav-link active" href="#">Buy</a>
+    <a class="nav-link" href="#">Rent</a>
+    <a class="nav-link" href="#">Commercial</a>
+    <a class="nav-link" href="#">New Projects</a>
+    <a class="nav-link" href="#">Agents</a>
+    <a class="nav-link" href="/pakstay/index.html">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-1px;margin-right:2px;"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Pak Stay
+    </a>
+  </div>
+  <div class="nav-spacer"></div>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <a class="nav-post btn" href="#" onclick="PS.toast('Post your property — coming soon!')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Post Ad
+    </a>
+    <div class="nav-avatar" onclick="PS.toast('My account')">AM</div>
+  </div>
+</nav>
+
+<!-- ===== HERO ===== -->
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-eyebrow">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      Pakistan's #1 Property Platform
+    </div>
+    <h1>Find Your Dream Property<br /><em>in Pakistan</em></h1>
+    <p class="hero-sub">Search 50,000+ verified homes, plots &amp; commercial spaces.<br />Buy, rent or invest — across every major city.</p>
+
+    <div class="hero-search">
+      <div class="hs-tabs">
+        <div class="hs-tab active" onclick="setTab(this,'buy')">Buy</div>
+        <div class="hs-tab" onclick="setTab(this,'rent')">Rent</div>
+        <div class="hs-tab" onclick="setTab(this,'commercial')">Commercial</div>
+        <div class="hs-tab" onclick="setTab(this,'plot')">Plot / Land</div>
+      </div>
+      <div class="hs-body">
+        <div class="hs-field" style="flex:1.8;min-width:200px;">
+          <label>Location</label>
+          <input type="text" placeholder="City, area, society…" />
+        </div>
+        <div class="hs-field">
+          <label>Property Type</label>
+          <select>
+            <option>Any Type</option>
+            <option>House</option>
+            <option>Apartment / Flat</option>
+            <option>Plot</option>
+            <option>Farm House</option>
+            <option>Room</option>
+          </select>
+        </div>
+        <div class="hs-field">
+          <label>Budget</label>
+          <select>
+            <option>Any Budget</option>
+            <option>Up to ₨50 Lakh</option>
+            <option>₨50L – ₨1 Crore</option>
+            <option>₨1 Cr – ₨3 Crore</option>
+            <option>₨3 Cr – ₨5 Crore</option>
+            <option>₨5 Cr+</option>
+          </select>
+        </div>
+        <div class="hs-field">
+          <label>Beds</label>
+          <select>
+            <option>Any</option>
+            <option>1+</option>
+            <option>2+</option>
+            <option>3+</option>
+            <option>4+</option>
+            <option>5+</option>
+          </select>
+        </div>
+        <button class="hs-go btn" onclick="PS.toast('Searching properties…')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          Search
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== STATS BAR ===== -->
+<div class="stats-bar">
+  <div class="stat-item"><div class="v">50,000+</div><div class="l">Active Listings</div></div>
+  <div class="stat-item"><div class="v">18</div><div class="l">Cities Covered</div></div>
+  <div class="stat-item"><div class="v">2,400+</div><div class="l">Verified Agents</div></div>
+  <div class="stat-item"><div class="v">₨4.8T</div><div class="l">Property Value Listed</div></div>
+  <div class="stat-item"><div class="v">4.7★</div><div class="l">Avg. Agent Rating</div></div>
+</div>
+
+<!-- ===== TRUST STRIP ===== -->
+<div class="trust-strip">
+  <div class="trust-item">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    CNIC Verified Agents
+  </div>
+  <div class="trust-item">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+    Physical Property Inspection
+  </div>
+  <div class="trust-item">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+    Secure Payments via Easypaisa / Bank
+  </div>
+  <div class="trust-item">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.45 2 2 0 0 1 3.59 1.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.78a16 16 0 0 0 6.29 6.29l1.04-.87a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+    24/7 Support · Urdu &amp; English
+  </div>
+</div>
+
+<!-- ===== FEATURED LISTINGS ===== -->
+<div class="prop-wrap">
+  <div class="sec-head">
+    <div class="sec-head-left">
+      <div class="sec-label">Featured Properties</div>
+      <div class="sec-title">Hand-picked, Verified Listings</div>
+      <div class="sec-sub">Thoroughly checked by our team — every property guaranteed real.</div>
+    </div>
+    <a class="sec-more" href="#">
+      View all listings
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+    </a>
+  </div>
+
+  <div class="listing-grid" id="featuredGrid"></div>
+</div>
+
+<!-- ===== BROWSE BY CITY ===== -->
+<div class="prop-wrap">
+  <div class="sec-head">
+    <div class="sec-head-left">
+      <div class="sec-label">Browse by City</div>
+      <div class="sec-title">Find Properties Near You</div>
+      <div class="sec-sub">Thousands of listings across Pakistan's major cities.</div>
+    </div>
+  </div>
+
+  <div class="city-grid">
+    <div class="city-card" onclick="PS.toast('Browsing Islamabad…')">
+      <div class="bg city-isb"></div>
+      <div class="overlay"></div>
+      <div class="info"><div class="c-name">Islamabad</div><div class="c-count">8,240 listings</div></div>
+    </div>
+    <div class="city-card" onclick="PS.toast('Browsing Lahore…')">
+      <div class="bg city-lhr"></div>
+      <div class="overlay"></div>
+      <div class="info"><div class="c-name">Lahore</div><div class="c-count">14,530 listings</div></div>
+    </div>
+    <div class="city-card" onclick="PS.toast('Browsing Karachi…')">
+      <div class="bg city-khi"></div>
+      <div class="overlay"></div>
+      <div class="info"><div class="c-name">Karachi</div><div class="c-count">11,870 listings</div></div>
+    </div>
+    <div class="city-card" onclick="PS.toast('Browsing Rawalpindi…')">
+      <div class="bg city-rwp"></div>
+      <div class="overlay"></div>
+      <div class="info"><div class="c-name">Rawalpindi</div><div class="c-count">4,610 listings</div></div>
+    </div>
+    <div class="city-card" onclick="PS.toast('Browsing Murree…')">
+      <div class="bg city-mur"></div>
+      <div class="overlay"></div>
+      <div class="info"><div class="c-name">Murree</div><div class="c-count">1,290 listings</div></div>
+    </div>
+    <div class="city-card" onclick="PS.toast('Browsing Faisalabad…')">
+      <div class="bg city-fsd"></div>
+      <div class="overlay"></div>
+      <div class="info"><div class="c-name">Faisalabad</div><div class="c-count">3,840 listings</div></div>
+    </div>
+    <div class="city-card" onclick="PS.toast('Browsing Multan…')">
+      <div class="bg city-mul"></div>
+      <div class="overlay"></div>
+      <div class="info"><div class="c-name">Multan</div><div class="c-count">2,150 listings</div></div>
+    </div>
+    <div class="city-card" onclick="PS.toast('Browsing Peshawar…')">
+      <div class="bg city-psh"></div>
+      <div class="overlay"></div>
+      <div class="info"><div class="c-name">Peshawar</div><div class="c-count">1,920 listings</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MAP SECTION ===== -->
+<div class="map-section">
+  <div class="prop-wrap">
+    <div class="sec-head">
+      <div class="sec-head-left">
+        <div class="sec-label">Map View</div>
+        <div class="sec-title">Explore on the Map</div>
+        <div class="sec-sub">See exactly where properties are located across Islamabad &amp; Rawalpindi.</div>
+      </div>
+      <a class="sec-more" href="#" onclick="PS.toast('Full map coming soon!')">
+        Open full map
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+      </a>
+    </div>
+
+    <div class="map-split" style="margin-bottom: 48px;">
+      <div class="map-sidebar">
+        <div class="map-sb-head">
+          Nearby Properties
+          <span class="map-sb-count">12 shown</span>
+        </div>
+        <div id="mapListPanel"></div>
+      </div>
+      <div id="propMap"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TOP AGENTS ===== -->
+<div class="prop-wrap">
+  <div class="sec-head">
+    <div class="sec-head-left">
+      <div class="sec-label">Top Agents</div>
+      <div class="sec-title">Work with the Best</div>
+      <div class="sec-sub">CNIC-verified agents with proven track records and 5-star reviews.</div>
+    </div>
+    <a class="sec-more" href="#">
+      All agents
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+    </a>
+  </div>
+  <div class="agents-grid" id="agentsGrid"></div>
+</div>
+
+<!-- ===== RECENTLY LISTED ===== -->
+<div class="prop-wrap">
+  <div class="sec-head">
+    <div class="sec-head-left">
+      <div class="sec-label">Just Added</div>
+      <div class="sec-title">Recently Listed</div>
+      <div class="sec-sub">Fresh listings added in the last 24 hours.</div>
+    </div>
+  </div>
+  <div class="recent-grid" id="recentGrid"></div>
+  <div style="margin-bottom:56px;"></div>
+</div>
+
+<!-- ===== FOOTER ===== -->
+<footer class="prop-footer">
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <a class="logo" href="/pakstay/property.html" style="display:inline-flex;">
+        <div class="logo-mark">PP</div>
+        <div class="logo-stack">
+          <span class="logo-name">PakistanProperty</span>
+          <span class="logo-by">.com</span>
+        </div>
+      </a>
+      <div class="footer-desc">Pakistan's most trusted property marketplace. Buy, sell, and rent verified homes, plots, and commercial spaces with confidence.</div>
+    </div>
+    <div class="footer-col">
+      <h4>Explore</h4>
+      <a href="#">Buy Property</a>
+      <a href="#">Rent Property</a>
+      <a href="#">Commercial</a>
+      <a href="#">New Projects</a>
+      <a href="#">Plot &amp; Land</a>
+    </div>
+    <div class="footer-col">
+      <h4>Services</h4>
+      <a href="#">Post Free Ad</a>
+      <a href="#">Find an Agent</a>
+      <a href="/pakstay/index.html">Pak Stay (Rentals)</a>
+      <a href="#">Property Valuation</a>
+      <a href="#">Home Loan</a>
+    </div>
+    <div class="footer-col">
+      <h4>Company</h4>
+      <a href="#">About Us</a>
+      <a href="#">Blog &amp; News</a>
+      <a href="#">Careers</a>
+      <a href="#">Contact</a>
+      <a href="#">Privacy Policy</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 PakistanProperty.com — All rights reserved.</span>
+    <div class="footer-social">
+      <a href="#" onclick="PS.toast('Facebook')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+      </a>
+      <a href="#" onclick="PS.toast('Twitter / X')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+      </a>
+      <a href="#" onclick="PS.toast('WhatsApp')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
+      </a>
+    </div>
+  </div>
+</footer>
+
+<script src="/pakstay/assets/pakstay.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV/XN/WLcE=" crossorigin=""></script>
+<script>
+// ─── DATA ───────────────────────────────────────────────────
+const FEATURED = [
+  { id:1, title:'5-Marla Modern House — DHA Phase 2', loc:'DHA Phase 2, Islamabad', price:'₨2.8 Cr', type:'sell', beds:4, baths:3, area:'1,100 sqft', badges:['featured','verified'], agent:{name:'Asif Mehmood', agency:'Premium Realty', init:'AM'}, photos:6, hot:false },
+  { id:2, title:'Luxury 3-Bed Apartment — F-10 Markaz', loc:'F-10 Markaz, Islamabad', price:'₨1.4 Cr', type:'sell', beds:3, baths:2, area:'950 sqft', badges:['verified','new'], agent:{name:'Sara Qureshi', agency:'Capital Properties', init:'SQ'}, photos:9, hot:false },
+  { id:3, title:'10-Marla Corner Plot — Bahria Town', loc:'Bahria Town Phase 8, Rawalpindi', price:'₨95 Lakh', type:'sell', beds:0, baths:0, area:'2,250 sqft', badges:['hot','verified'], agent:{name:'Umar Farooq', agency:'Bahria Agents', init:'UF'}, photos:4, hot:true },
+  { id:4, title:'Upper Portion for Rent — G-9', loc:'G-9/2, Islamabad', price:'₨55,000 /mo', type:'rent', beds:3, baths:2, area:'800 sqft', badges:['rent'], agent:{name:'Bilal Hussain', agency:'City Rentals', init:'BH'}, photos:7, hot:false },
+  { id:5, title:'Commercial Plaza — Blue Area', loc:'Blue Area, Islamabad', price:'₨8.5 Cr', type:'sell', beds:0, baths:0, area:'6,400 sqft', badges:['featured'], agent:{name:'Nauman Shah', agency:'Blue Area Properties', init:'NS'}, photos:11, hot:false },
+  { id:6, title:'Brand New 1-Kanal House — Gulberg', loc:'Gulberg III, Lahore', price:'₨5.2 Cr', type:'sell', beds:6, baths:5, area:'4,500 sqft', badges:['featured','verified'], agent:{name:'Hira Tariq', agency:'Lahore Estates', init:'HT'}, photos:14, hot:false },
+];
+
+const AGENTS = [
+  { name:'Asif Mehmood', agency:'Premium Realty ISB', init:'AM', listings:47, deals:130, rating:4.9, langs:['Urdu','English'] },
+  { name:'Sara Qureshi', agency:'Capital Properties', init:'SQ', listings:32, deals:88, rating:4.8, langs:['Urdu','English','Punjabi'] },
+  { name:'Umar Farooq', agency:'Bahria Experts', init:'UF', listings:58, deals:214, rating:4.7, langs:['Urdu'] },
+  { name:'Hira Tariq', agency:'Lahore Estates', init:'HT', listings:29, deals:75, rating:5.0, langs:['Urdu','English'] },
+];
+
+const MAP_PROPS = [
+  { id:1, title:'DHA House 5M', price:'₨2.8 Cr', loc:'DHA Phase 2', lat:33.720, lng:73.065, hot:false },
+  { id:2, title:'F-10 Apartment', price:'₨1.4 Cr', loc:'F-10 Markaz', lat:33.698, lng:73.022, hot:false },
+  { id:3, title:'Bahria Plot 10M', price:'₨95L', loc:'Bahria Town', lat:33.534, lng:73.087, hot:true },
+  { id:4, title:'G-9 Upper Portion', price:'₨55k/mo', loc:'G-9', lat:33.696, lng:72.998, hot:false },
+  { id:5, title:'Blue Area Plaza', price:'₨8.5 Cr', loc:'Blue Area', lat:33.7255, lng:73.0943, hot:false },
+  { id:6, title:'F-7 House 1K', price:'₨6.1 Cr', loc:'F-7/2', lat:33.7173, lng:73.058, hot:false },
+  { id:7, title:'E-11 Apartment', price:'₨80L', loc:'E-11', lat:33.7315, lng:72.977, hot:false },
+  { id:8, title:'I-8 Corner Plot', price:'₨1.1 Cr', loc:'I-8/1', lat:33.6795, lng:73.063, hot:false },
+  { id:9, title:'Saidpur Farmhouse', price:'₨3.2 Cr', loc:'Saidpur', lat:33.747, lng:73.085, hot:false },
+  { id:10, title:'PWD House 7M', price:'₨1.8 Cr', loc:'PWD Colony', lat:33.6551, lng:73.070, hot:false },
+  { id:11, title:'G-13 Apartment', price:'₨45k/mo', loc:'G-13', lat:33.6938, lng:72.960, hot:false },
+  { id:12, title:'CDA Sector F-8', price:'₨4.4 Cr', loc:'F-8/3', lat:33.7109, lng:73.043, hot:true },
+];
+
+const RECENT = [
+  { title:'2-Bed Flat — E-7', loc:'E-7, Islamabad', price:'₨65k/mo', time:'2 hrs ago', emoji:'🏢' },
+  { title:'5-Marla Plot — Gulshan Abad', loc:'Gulshan Abad, RWP', price:'₨28 Lakh', time:'4 hrs ago', emoji:'📐' },
+  { title:'3-Marla House — Lalazar', loc:'Lalazar, Rawalpindi', price:'₨68 Lakh', time:'5 hrs ago', emoji:'🏠' },
+  { title:'Shop — G-9 Markaz', loc:'G-9 Markaz, ISB', price:'₨90k/mo', time:'6 hrs ago', emoji:'🏪' },
+  { title:'Penthouse — F-10', loc:'F-10/2, Islamabad', price:'₨2.1 Cr', time:'9 hrs ago', emoji:'🏙️' },
+  { title:'1-Kanal Plot — Margalla Hills', loc:'Margalla, ISB', price:'₨4.8 Cr', time:'11 hrs ago', emoji:'🌿' },
+  { title:'Studio Apt — Bahria Phase 7', loc:'Bahria Ph 7, RWP', price:'₨35k/mo', time:'14 hrs ago', emoji:'🏨' },
+  { title:'Office Floor — Blue Area', loc:'Blue Area, ISB', price:'₨3.5 Cr', time:'18 hrs ago', emoji:'🏢' },
+];
+
+// ─── RENDER FEATURED LISTINGS ───────────────────────────────
+function renderFeatured() {
+  const g = document.getElementById('featuredGrid');
+  g.innerHTML = FEATURED.map(p => {
+    const badgeHtml = p.badges.map(b => `<span class="pc-badge ${b}">${b.charAt(0).toUpperCase()+b.slice(1)}</span>`).join('');
+    const specsHtml = p.beds > 0
+      ? `<div class="pc-spec"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>${p.beds} Beds</div>
+         <div class="pc-spec"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/></svg>${p.baths} Baths</div>`
+      : '';
+    return `
+    <div class="prop-card${p.badges.includes('featured')?' featured':''}" onclick="PS.toast('Opening: ${p.title}')">
+      <div class="pc-img">
+        <div class="pc-img-placeholder">🏠</div>
+        <div class="pc-badges">${badgeHtml}</div>
+        <button class="pc-save" onclick="event.stopPropagation();this.classList.toggle('saved');PS.toast(this.classList.contains('saved')?'Saved!':'Removed from saved')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="${p.hot?'#ef4444':'none'}" stroke="${p.hot?'#ef4444':'currentColor'}" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        </button>
+        <div class="pc-photo-count">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          ${p.photos}
+        </div>
+      </div>
+      <div class="pc-body">
+        <div class="pc-price">${p.price} <span>${p.type==='rent'?'':'for sale'}</span></div>
+        <div class="pc-title">${p.title}</div>
+        <div class="pc-loc">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          ${p.loc}
+        </div>
+        <div class="pc-specs">
+          ${specsHtml}
+          <div class="pc-spec"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v18H3z"/></svg>${p.area}</div>
+        </div>
+        <div class="pc-agent">
+          <div class="pc-agent-av">${p.agent.init}</div>
+          <div class="pc-agent-info">
+            <div class="pc-agent-name">${p.agent.name}</div>
+            <div class="pc-agent-agency">${p.agent.agency}</div>
+          </div>
+          <div class="pc-agent-actions">
+            <button class="pc-call" onclick="event.stopPropagation();PS.toast('Calling ${p.agent.name}…')">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.45 2 2 0 0 1 3.59 1.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.78a16 16 0 0 0 6.29 6.29l1.04-.87a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            </button>
+            <button class="pc-msg" onclick="event.stopPropagation();PS.toast('Message ${p.agent.name}…')">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─── RENDER AGENTS ───────────────────────────────────────────
+function renderAgents() {
+  const g = document.getElementById('agentsGrid');
+  g.innerHTML = AGENTS.map(a => `
+    <div class="agent-card">
+      <div class="ag-av-wrap">
+        <div class="ag-av">${a.init}</div>
+        <div class="ag-verified">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+      </div>
+      <div class="ag-name">${a.name}</div>
+      <div class="ag-agency">${a.agency}</div>
+      <div class="ag-langs">${a.langs.map(l=>`<span class="ag-lang">${l}</span>`).join('')}</div>
+      <div class="ag-stats">
+        <div class="ag-stat"><div class="v">${a.listings}</div><div class="l">Listings</div></div>
+        <div class="ag-stat"><div class="v">${a.deals}</div><div class="l">Deals</div></div>
+        <div class="ag-stat"><div class="v">${a.rating}★</div><div class="l">Rating</div></div>
+      </div>
+      <div class="ag-actions">
+        <button class="ag-btn ag-btn-call" onclick="PS.toast('Calling ${a.name}…')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.45 2 2 0 0 1 3.59 1.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.78a16 16 0 0 0 6.29 6.29l1.04-.87a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          Call
+        </button>
+        <button class="ag-btn ag-btn-chat" onclick="PS.toast('Chat with ${a.name}…')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          Chat
+        </button>
+      </div>
+    </div>`).join('');
+}
+
+// ─── RENDER RECENT ───────────────────────────────────────────
+function renderRecent() {
+  const g = document.getElementById('recentGrid');
+  g.innerHTML = RECENT.map(r => `
+    <div class="recent-card" onclick="PS.toast('Opening listing…')">
+      <div class="rc-img">${r.emoji}</div>
+      <div class="rc-body">
+        <div class="rc-price">${r.price}</div>
+        <div class="rc-title">${r.title}</div>
+        <div class="rc-loc">${r.loc}</div>
+        <div class="rc-time">${r.time}</div>
+      </div>
+    </div>`).join('');
+}
+
+// ─── INIT MAP ────────────────────────────────────────────────
+function initMap() {
+  const map = L.map('propMap', { zoomControl: true }).setView([33.7065, 73.040], 11);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors', maxZoom: 18
+  }).addTo(map);
+
+  const listPanel = document.getElementById('mapListPanel');
+
+  MAP_PROPS.forEach((p, i) => {
+    const pinHtml = `<div class="prop-price-pin${p.hot?' hot':''}">${p.price}</div>`;
+    const icon = L.divIcon({ html: pinHtml, className:'', iconAnchor:[30,28] });
+    const marker = L.marker([p.lat, p.lng], { icon }).addTo(map);
+
+    marker.on('click', () => {
+      document.querySelectorAll('.map-list-item').forEach(el => el.classList.remove('active'));
+      document.getElementById('mapItem'+i)?.classList.add('active');
+      PS.toast('Viewing: ' + p.title);
+    });
+
+    listPanel.innerHTML += `
+      <div class="map-list-item" id="mapItem${i}" onclick="map.setView([${p.lat},${p.lng}],14);PS.toast('${p.title}');this.classList.add('active')">
+        <div class="map-li-img">🏠</div>
+        <div class="map-li-body">
+          <div class="map-li-price">${p.price}</div>
+          <div class="map-li-title">${p.title}</div>
+          <div class="map-li-loc">${p.loc}</div>
+        </div>
+      </div>`;
+  });
+}
+
+// ─── HERO TAB TOGGLE ────────────────────────────────────────
+function setTab(el, type) {
+  document.querySelectorAll('.hs-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ─── BOOT ────────────────────────────────────────────────────
+renderFeatured();
+renderAgents();
+renderRecent();
+initMap();
+</script>
+</body>
+</html>

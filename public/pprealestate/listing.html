@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PakistanProperty — Listing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/pprealestate/assets/pp.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<style>
+  .container { max-width: 1200px; margin: 0 auto; padding: 88px 24px 60px; }
+  .crumbs { font-size: 12px; color: var(--text-muted); margin-bottom: 14px; }
+  .crumbs a:hover { color: var(--green); text-decoration: underline; }
+
+  .listing-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 14px; flex-wrap: wrap; }
+  .listing-title { font-size: 26px; font-weight: 800; color: var(--text-high); line-height: 1.25; }
+  .listing-meta { display: flex; align-items: center; gap: 14px; margin-top: 6px; font-size: 13px; color: var(--text-muted); flex-wrap: wrap; }
+  .listing-meta .star { color: var(--text-high); font-weight: 700; }
+  .listing-meta a { text-decoration: underline; }
+  .listing-actions { display: flex; gap: 8px; }
+  .pill-btn { display:flex; align-items:center; gap:6px; padding: 8px 12px; border-radius: var(--radius-sm); font-size: 12.5px; font-weight: 600; color: var(--text-mid); transition: background .15s; }
+  .pill-btn:hover { background: var(--bg); }
+
+  .gallery {
+    display: grid; grid-template-columns: 2fr 1fr 1fr;
+    grid-template-rows: 200px 200px;
+    gap: 8px; border-radius: var(--radius-lg); overflow: hidden;
+    margin-bottom: 28px;
+  }
+  .gallery .g-img { width:100%; height:100%; object-fit: cover; cursor: pointer; transition: opacity .2s; }
+  .gallery .g-img:hover { opacity: .92; }
+  .gallery .g0 { grid-row: 1 / span 2; }
+  .g-more { position: relative; }
+  .g-more-btn {
+    position: absolute; bottom: 12px; right: 12px;
+    background: var(--white); color: var(--text-high);
+    padding: 6px 12px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700;
+    box-shadow: var(--shadow-sm); border: 1px solid var(--border);
+  }
+
+  .listing-grid { display: grid; grid-template-columns: 1fr 360px; gap: 40px; align-items: start; }
+  @media (max-width: 900px) { .listing-grid { grid-template-columns: 1fr; } }
+
+  .section { padding: 24px 0; border-bottom: 1px solid var(--border); }
+  .section:first-child { padding-top: 0; }
+  .section-title { font-size: 18px; font-weight: 800; color: var(--text-high); margin-bottom: 14px; }
+  .lead { font-size: 14px; color: var(--text-mid); line-height: 1.65; }
+
+  .host-row { display: flex; align-items: center; gap: 14px; }
+  .host-avatar {
+    width: 52px; height: 52px; border-radius: 50%;
+    background: var(--green-light); color: var(--green); display: flex;
+    align-items: center; justify-content: center; font-weight: 800; font-size: 18px;
+    border: 2px solid var(--green);
+  }
+  .host-meta { font-size: 12.5px; color: var(--text-muted); }
+  .host-meta strong { display: block; font-size: 15px; color: var(--text-high); font-weight: 700; margin-bottom: 2px; }
+
+  .feature-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  @media (max-width: 600px) { .feature-grid { grid-template-columns: repeat(2, 1fr); } }
+  .feature {
+    border: 1px solid var(--border); border-radius: var(--radius-md);
+    padding: 14px; text-align: center;
+  }
+  .feature .fv { font-size: 18px; font-weight: 800; color: var(--text-high); }
+  .feature .fl { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
+
+  .amenity-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .amenity {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; border: 1px solid var(--border-faint); border-radius: var(--radius-sm);
+    font-size: 13px; color: var(--text-mid);
+  }
+  .amenity svg { color: var(--green); }
+
+  /* Reviews */
+  .rev-summary { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; }
+  .rev-score { font-size: 38px; font-weight: 800; color: var(--text-high); line-height: 1; }
+  .rev-meta { font-size: 13px; color: var(--text-muted); }
+  .review-list { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 700px) { .review-list { grid-template-columns: 1fr; } }
+  .review { padding: 14px 0; }
+  .review .ra { display:flex; gap: 10px; align-items: center; margin-bottom: 6px; }
+  .review .ra .av { width: 36px; height: 36px; border-radius: 50%; background: var(--green-light); color: var(--green); display:flex; align-items:center; justify-content:center; font-weight: 700; font-size: 12.5px; }
+  .review .rn { font-size: 13px; font-weight: 700; color: var(--text-high); }
+  .review .rd { font-size: 11.5px; color: var(--text-faint); }
+  .review p { font-size: 13px; color: var(--text-mid); line-height: 1.55; }
+
+  #detailMap { height: 320px; width: 100%; border-radius: var(--radius-lg); border: 1px solid var(--border); }
+
+  /* Agent / Contact sidebar */
+  .contact-card {
+    position: sticky; top: 88px;
+    background: var(--white); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 22px; box-shadow: var(--shadow-md);
+  }
+  .price-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
+  .price-head .v { font-size: 26px; font-weight: 800; color: var(--green); }
+  .price-head .v span { font-size: 13px; font-weight: 400; color: var(--text-muted); }
+  .price-head .r { font-size: 13px; color: var(--text-muted); }
+  .price-head .r .star { color: var(--text-high); }
+  .price-sub { font-size: 12px; color: var(--text-muted); margin-bottom: 16px; }
+
+  .agent-block {
+    display: flex; gap: 12px; align-items: center;
+    background: var(--bg); border-radius: var(--radius-md);
+    padding: 12px; margin-bottom: 14px;
+  }
+  .agent-block .av {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: var(--green-light); color: var(--green);
+    display:flex; align-items:center; justify-content:center; font-weight:800; font-size:15px;
+    border: 1.5px solid var(--green); flex-shrink: 0;
+  }
+  .agent-block .n { font-size: 14px; font-weight: 800; color: var(--text-high); }
+  .agent-block .ag { font-size: 11.5px; color: var(--text-muted); }
+  .agent-block .rt { font-size: 11px; color: var(--green); font-weight: 700; margin-top: 2px; }
+
+  .contact-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .cta-btn {
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    padding: 11px 12px; border-radius: var(--radius-sm);
+    font-size: 13px; font-weight: 700; transition: all .15s;
+  }
+  .cta-call { background: var(--green); color: #fff; }
+  .cta-call:hover { background: var(--green-hover); }
+  .cta-wapp { background: #25D366; color: #fff; }
+  .cta-wapp:hover { background: #1da953; }
+  .cta-msg  { border: 1.5px solid var(--border); color: var(--text-mid); background: var(--white); grid-column: span 2; }
+  .cta-msg:hover { border-color: var(--green); color: var(--green); }
+
+  .price-rows { margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--border-faint); }
+  .price-rows .r { display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; color: var(--text-mid); }
+  .price-rows .r .v { color: var(--text-high); font-weight: 600; }
+
+  .badges-mini { display: flex; gap: 6px; margin: 8px 0 18px; flex-wrap: wrap; }
+  .badges-mini span {
+    background: var(--green-faint); color: var(--green);
+    padding: 3px 9px; border-radius: 5px; font-size: 11px; font-weight: 700;
+    border: 1px solid rgba(26,107,42,.18);
+  }
+
+  /* Mortgage */
+  .mort {
+    background: var(--bg); border-radius: var(--radius-md);
+    padding: 14px; margin-top: 14px;
+  }
+  .mort .mhead { font-size: 12px; font-weight: 700; color: var(--text-mid); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 10px; }
+  .mort .mrow  { display:flex; justify-content: space-between; font-size: 12.5px; padding: 4px 0; color: var(--text-mid); }
+  .mort .mrow strong { color: var(--text-high); }
+  .mort input { width: 100%; padding: 8px 10px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; outline: none; }
+  .mort input:focus { border-color: var(--green); }
+  .mort .mtotal { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); display:flex; justify-content: space-between; font-size: 14px; font-weight: 800; color: var(--green); }
+
+  .ps-pin-wrap { background: transparent; border: 0; }
+  .ps-pin {
+    background: var(--green); color: #fff; border: 2px solid #fff;
+    padding: 4px 10px; border-radius: 20px; font-size: 11.5px; font-weight: 700;
+    box-shadow: var(--shadow-md); white-space: nowrap; text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<div id="pp-header" data-active="explore"></div>
+
+<div class="container" id="content"></div>
+
+<script src="/pprealestate/assets/pp.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+function goBack(){
+  if (document.referrer && new URL(document.referrer).origin === location.origin) history.back();
+  else location.href = '/pprealestate/index.html';
+}
+
+const id = Number(PP.qs('id')) || 1;
+const l = PP.byId(id) || PP.listings[0];
+
+const amenityIcons = {
+  'Servant Qtr':       '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>',
+  'Generator':         '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="13 2 4 14 12 14 11 22 20 10 13 10 13 2"/></svg>',
+  'Solar':             '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="6.34" y2="6.34"/><line x1="17.66" y1="17.66" x2="19.07" y2="19.07"/></svg>',
+  'CCTV':              '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 8l-7 4-7-4 7-4 7 4z"/><path d="M2 12h6M2 16h6M2 20h6"/></svg>',
+  'Lawn':              '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22V8M12 8c-3 0-5-2-5-5 3 0 5 2 5 5zM12 8c3 0 5-2 5-5-3 0-5 2-5 5z"/></svg>',
+  'Marble Floors':     '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="12" y1="3" x2="12" y2="21"/></svg>',
+  'Sui Gas':           '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 14c0-3 4-3 4-7 2 2 4 5 4 9 0 4-3 6-6 6s-6-2-6-6c0-2 1-3 2-4"/></svg>',
+  'Tarmac Road':       '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 20l4-16h10l4 16"/><line x1="12" y1="6" x2="12" y2="9"/><line x1="12" y1="13" x2="12" y2="16"/></svg>',
+  'Lift':              '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="3" width="12" height="18" rx="1"/><polyline points="9 8 12 5 15 8"/><polyline points="9 16 12 19 15 16"/></svg>',
+  '24/7 Security':     '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+  'Gym':               '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h20M6 6v12M10 4v16M14 4v16M18 6v12"/></svg>',
+  'Rooftop':           '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8M5 11v9h14v-9"/></svg>',
+  'Parking':           '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 17V7h4a3 3 0 0 1 0 6H9"/></svg>',
+  'Power Backup':      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="13 2 4 14 12 14 11 22 20 10 13 10 13 2"/></svg>',
+  'Intercom':          '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.45 2 2 0 0 1 3.59 1.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.78a16 16 0 0 0 6.29 6.29l1.04-.87a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>',
+  'Corner':            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 21 21 21 21 3"/></svg>',
+  'Park Facing':       '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22V8M12 8c-3 0-5-2-5-5 3 0 5 2 5 5zM12 8c3 0 5-2 5-5-3 0-5 2-5 5z"/></svg>',
+  'Possession Ready':  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>',
+  'Wide Street':       '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 21 21 21"/><path d="M7 21V8M17 21V8"/></svg>',
+  'Utilities Ready':   '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>',
+  'Swimming Pool':     '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 17c2-2 4 0 6 0s4-2 6 0 4 2 6 0"/><path d="M2 21c2-2 4 0 6 0s4-2 6 0 4 2 6 0"/><path d="M6 12V5a3 3 0 0 1 6 0v8"/></svg>',
+  'Imported Fittings': '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
+  'Home Automation':   '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>',
+  'Main Boulevard':    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 21 21 21"/><path d="M9 21V3h6v18"/></svg>',
+  '3-Phase Power':     '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="13 2 4 14 12 14 11 22 20 10 13 10 13 2"/></svg>',
+  'Security':          '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+  'Separate Entrance': '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v18h-6M10 17l5-5-5-5M15 12H3"/></svg>',
+  'Water Tank':        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2c4 4 6 8 6 12a6 6 0 1 1-12 0c0-4 2-8 6-12z"/></svg>',
+  'Tiled Floors':      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="12" y1="3" x2="12" y2="21"/></svg>',
+  'Geyser':            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 22V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14"/><circle cx="12" cy="14" r="2"/></svg>',
+  'Furnished':         '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4v16"/><path d="M2 8h18a2 2 0 0 1 2 2v10"/><path d="M2 17h20"/></svg>',
+  'WiFi':              '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1"/></svg>',
+  'Cupboards Fitted':  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="12" y1="2" x2="12" y2="22"/></svg>'
+};
+
+const sampleReviews = [
+  { name: 'Ali Raza',   date: 'Apr 2026', text: 'Saw the property last week — exactly as advertised. Asif was super helpful and answered every question. Highly recommended.' },
+  { name: 'Hina Tariq', date: 'Mar 2026', text: 'Excellent area and well-built. Documentation was clean and we closed in 3 weeks. Best agent we worked with.' },
+  { name: 'Omar Sajid', date: 'Feb 2026', text: 'Good price for the location. Society amenities and schools nearby. Transparent paperwork.' },
+  { name: 'Sana Mir',   date: 'Jan 2026', text: 'Lovely house. The lawn is bigger than the photos suggest. Smooth process throughout.' }
+];
+
+const imgs = l.images.concat(l.images, l.images).slice(0, 5);
+document.title = `PakistanProperty — ${l.short}`;
+
+const sizeStat   = l.purpose === 'sale' ? 'Plot Size' : 'Area';
+const priceLabel = l.priceLabel;
+const priceSuf   = l.priceSuffix || 'for sale';
+
+document.getElementById('content').innerHTML = `
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
+    <button class="ps-back" onclick="goBack()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+      Back to listings
+    </button>
+    <div class="crumbs" style="margin:0;">
+      <a href="/pprealestate/index.html">Properties</a> ›
+      <a href="/pprealestate/index.html">${l.city}</a> ›
+      <span>${l.short}</span>
+    </div>
+  </div>
+
+  <div class="listing-head">
+    <div>
+      <h1 class="listing-title">${l.title}</h1>
+      <div class="listing-meta">
+        <span><span class="star">★</span> <strong>${l.rating}</strong> · <a href="#reviews">${l.reviews} reviews</a></span>
+        <span>${l.loc}</span>
+        ${(l.badges||[]).slice(0,2).map(b=>`<span style="color:var(--green);font-weight:700">${b}</span>`).join(' · ')}
+      </div>
+    </div>
+    <div class="listing-actions">
+      <button class="pill-btn" onclick="PP.toast('Link copied')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        Share
+      </button>
+      <button class="pill-btn" onclick="PP.toast('Saved to shortlist')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        Save
+      </button>
+      <button class="pill-btn" onclick="PP.toast('Report listing — thanks')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="22" x2="4" y2="15"/><path d="M4 15c4-2 8 2 12 0 4-2 4-9 4-9-4 2-8-2-12 0-4 2-4 9-4 9z"/></svg>
+        Report
+      </button>
+    </div>
+  </div>
+
+  <div class="gallery">
+    <img class="g-img g0" src="${imgs[0]}" alt="" />
+    <img class="g-img" src="${imgs[1] || imgs[0]}" alt="" />
+    <img class="g-img" src="${imgs[2] || imgs[0]}" alt="" />
+    <img class="g-img" src="${imgs[3] || imgs[0]}" alt="" />
+    <div class="g-more"><img class="g-img" src="${imgs[4] || imgs[0]}" alt="" /><button class="g-more-btn" onclick="PP.toast('${l.images.length} photos · Tap to view')">Show all photos</button></div>
+  </div>
+
+  <div class="listing-grid">
+    <div>
+      <!-- Agent row -->
+      <div class="section">
+        <div class="host-row">
+          <div class="host-avatar">${l.agent.name.charAt(0)}</div>
+          <div>
+            <div class="host-meta"><strong>${l.type} listed by ${l.agent.name}</strong>${l.bedrooms>0?l.bedrooms+' beds · '+l.bathrooms+' baths · ':''}${l.sizeText} · ${l.area}${l.yearBuilt?' · Built '+l.yearBuilt:''}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Key features -->
+      <div class="section">
+        <div class="feature-grid">
+          ${l.bedrooms>0 ? `<div class="feature"><div class="fv">${l.bedrooms}</div><div class="fl">Bedrooms</div></div>` : ''}
+          ${l.bathrooms>0 ? `<div class="feature"><div class="fv">${l.bathrooms}</div><div class="fl">Bathrooms</div></div>` : ''}
+          <div class="feature"><div class="fv">${l.sizeText}</div><div class="fl">${sizeStat}</div></div>
+          <div class="feature"><div class="fv">${l.area}</div><div class="fl">Covered Area</div></div>
+          ${l.yearBuilt ? `<div class="feature"><div class="fv">${l.yearBuilt}</div><div class="fl">Year Built</div></div>` : ''}
+          ${l.parking>0 ? `<div class="feature"><div class="fv">${l.parking}</div><div class="fl">Parking</div></div>` : ''}
+        </div>
+      </div>
+
+      <!-- About -->
+      <div class="section">
+        <h2 class="section-title">About this property</h2>
+        <p class="lead">${l.desc}</p>
+      </div>
+
+      <!-- Amenities -->
+      <div class="section">
+        <h2 class="section-title">Features &amp; amenities</h2>
+        <div class="amenity-grid">
+          ${l.amenities.map(a => `<div class="amenity">${amenityIcons[a] || amenityIcons['Cupboards Fitted']}<span>${a}</span></div>`).join('')}
+        </div>
+      </div>
+
+      <!-- Reviews -->
+      <div class="section" id="reviews">
+        <h2 class="section-title">Buyer reviews of this agent</h2>
+        <div class="rev-summary">
+          <div class="rev-score">${l.rating}</div>
+          <div class="rev-meta">
+            <div style="font-weight:700;color:var(--text-high);font-size:14px;">★ ${l.rating}</div>
+            <div>Based on ${l.reviews} verified buyer reviews</div>
+          </div>
+        </div>
+        <div class="review-list">
+          ${sampleReviews.map(r => `
+            <div class="review">
+              <div class="ra">
+                <div class="av">${r.name.charAt(0)}</div>
+                <div><div class="rn">${r.name}</div><div class="rd">${r.date}</div></div>
+              </div>
+              <p>${r.text}</p>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <!-- Location -->
+      <div class="section">
+        <h2 class="section-title">Location &amp; neighbourhood</h2>
+        <p class="lead" style="margin-bottom:14px;">${l.loc}</p>
+        <div id="detailMap"></div>
+      </div>
+
+      <!-- Agent card -->
+      <div class="section" style="border-bottom:0;">
+        <h2 class="section-title">Listed by ${l.agent.name}</h2>
+        <div class="host-row">
+          <div class="host-avatar" style="width:60px;height:60px;font-size:22px;">${l.agent.name.charAt(0)}</div>
+          <div>
+            <div class="host-meta">
+              <strong>${l.agent.name}</strong>
+              ${l.agent.agency} · Joined ${l.agent.joined} · ★ ${l.agent.rating} · ${l.agent.listings} listings · ${l.agent.deals} closed deals
+            </div>
+            <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
+              ${(l.agent.langs||[]).map(lng=>`<span style="font-size:11px;font-weight:600;padding:2px 9px;border-radius:6px;background:var(--green-faint);color:var(--green);border:1px solid rgba(26,107,42,.18);">${lng}</span>`).join('')}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contact sidebar -->
+    <aside>
+      <div class="contact-card">
+        <div class="price-head">
+          <div class="v">${priceLabel}<span> ${priceSuf}</span></div>
+          <div class="r"><span class="star">★</span> ${l.rating}</div>
+        </div>
+        <div class="price-sub">${l.area} · ${l.sizeText}${l.yearBuilt?' · '+l.yearBuilt:''}</div>
+
+        <div class="agent-block">
+          <div class="av">${l.agent.name.charAt(0)}</div>
+          <div style="flex:1;min-width:0;">
+            <div class="n">${l.agent.name}</div>
+            <div class="ag">${l.agent.agency}</div>
+            <div class="rt">★ ${l.agent.rating} · ${l.agent.deals} deals</div>
+          </div>
+        </div>
+
+        <div class="contact-actions">
+          <button class="cta-btn cta-call" onclick="PP.toast('Calling ${l.agent.name} — ${l.agent.phone}')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.45 2 2 0 0 1 3.59 1.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.78a16 16 0 0 0 6.29 6.29l1.04-.87a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            Call
+          </button>
+          <button class="cta-btn cta-wapp" onclick="PP.toast('Opening WhatsApp…')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg>
+            WhatsApp
+          </button>
+          <button class="cta-btn cta-msg" id="msgBtn">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            Email / Message Agent
+          </button>
+        </div>
+
+        <div class="badges-mini">
+          ${(l.badges||[]).map(b => `<span>${b}</span>`).join('')}
+        </div>
+
+        <!-- Property summary -->
+        <div class="price-rows">
+          <div class="r"><span>Type</span><span class="v">${l.type}</span></div>
+          <div class="r"><span>${l.purpose==='sale'?'Listed price':'Monthly rent'}</span><span class="v">${PP.fmtFull(l.price)}</span></div>
+          <div class="r"><span>Covered area</span><span class="v">${l.area}</span></div>
+          <div class="r"><span>Plot size</span><span class="v">${l.sizeText}</span></div>
+        </div>
+
+        ${l.purpose==='sale' ? `
+        <div class="mort">
+          <div class="mhead">Mortgage estimator</div>
+          <div class="mrow"><span>Down payment (25%)</span><strong id="dpAmt">—</strong></div>
+          <div class="mrow"><span>Loan amount</span><strong id="loanAmt">—</strong></div>
+          <div class="mrow"><span>Rate (annual %)</span></div>
+          <input id="rate" type="number" value="12" step="0.5" />
+          <div class="mrow" style="margin-top:8px;"><span>Term (years)</span></div>
+          <input id="term" type="number" value="20" />
+          <div class="mtotal"><span>Est. monthly</span><span id="emi">—</span></div>
+        </div>` : `
+        <div class="mort">
+          <div class="mhead">Rent estimator</div>
+          <div class="mrow"><span>Monthly rent</span><strong>${PP.fmtFull(l.price)}</strong></div>
+          <div class="mrow"><span>Security deposit (2 months)</span><strong>${PP.fmtFull(l.price*2)}</strong></div>
+          <div class="mrow"><span>Advance rent (1 month)</span><strong>${PP.fmtFull(l.price)}</strong></div>
+          <div class="mtotal"><span>Move-in total</span><span>${PP.fmtFull(l.price*3)}</span></div>
+        </div>`}
+
+        <button class="btn btn-primary btn-block btn-lg" id="featuredBtn" style="margin-top:16px;">
+          ${l.purpose==='sale' ? 'Book a site visit' : 'Schedule a viewing'}
+        </button>
+        <div style="font-size:11.5px;color:var(--text-faint);text-align:center;margin-top:8px;">Free · No commitment</div>
+      </div>
+    </aside>
+  </div>
+`;
+
+// Mortgage calc
+if (l.purpose === 'sale') {
+  const dpEl = document.getElementById('dpAmt');
+  const lnEl = document.getElementById('loanAmt');
+  const rEl  = document.getElementById('rate');
+  const tEl  = document.getElementById('term');
+  const eEl  = document.getElementById('emi');
+  function calcEMI(){
+    const dp = l.price * 0.25;
+    const loan = l.price - dp;
+    const r = (parseFloat(rEl.value)||12) / 12 / 100;
+    const n = (parseInt(tEl.value)||20) * 12;
+    const emi = Math.round(loan * r * Math.pow(1+r, n) / (Math.pow(1+r, n) - 1));
+    dpEl.textContent = PP.fmtFull(Math.round(dp));
+    lnEl.textContent = PP.fmtFull(Math.round(loan));
+    eEl.textContent = PP.fmtFull(emi);
+  }
+  rEl.addEventListener('input', calcEMI);
+  tEl.addEventListener('input', calcEMI);
+  calcEMI();
+}
+
+document.getElementById('msgBtn').addEventListener('click', () => {
+  location.href = `/pprealestate/checkout.html?id=${l.id}&action=message`;
+});
+document.getElementById('featuredBtn').addEventListener('click', () => {
+  location.href = `/pprealestate/checkout.html?id=${l.id}&action=visit`;
+});
+
+// Leaflet map
+const map = L.map('detailMap', { scrollWheelZoom: false }).setView([l.lat, l.lng], 13);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19, attribution: '&copy; OpenStreetMap contributors'
+}).addTo(map);
+L.marker([l.lat, l.lng], { icon: PP.pricePin(l.priceLabel, true) }).addTo(map);
+</script>
+</body>
+</html>

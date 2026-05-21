@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pak Stay — Confirm &amp; Pay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/pakstay/assets/pakstay.css" />
+<style>
+  .co-shell { max-width: 1080px; margin: 0 auto; padding: 90px 24px 60px; }
+  .co-head { margin-bottom: 22px; display: flex; align-items: center; gap: 14px; }
+  .back-btn {
+    width: 38px; height: 38px; border-radius: 50%;
+    border: 1.5px solid var(--border); color: var(--text-mid);
+    display: flex; align-items: center; justify-content: center; transition: all .15s;
+  }
+  .back-btn:hover { border-color: var(--green); color: var(--green); }
+  .co-head h1 { font-size: 26px; font-weight: 800; }
+
+  .co-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 32px; align-items: start; }
+  @media (max-width: 880px) { .co-grid { grid-template-columns: 1fr; } }
+
+  .co-section { padding: 22px 0; border-bottom: 1px solid var(--border); }
+  .co-section:first-of-type { padding-top: 0; }
+  .co-section h2 { font-size: 17px; font-weight: 800; margin-bottom: 14px; }
+
+  .info-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; }
+  .info-row .lbl { font-size: 13px; font-weight: 700; color: var(--text-high); }
+  .info-row .val { font-size: 13px; color: var(--text-mid); }
+  .info-row a   { color: var(--green); font-weight: 700; font-size: 12.5px; }
+  .info-row a:hover { text-decoration: underline; }
+
+  /* Payment methods */
+  .pay-list { display: grid; gap: 10px; }
+  .pay-tile {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 16px; border: 1.5px solid var(--border); border-radius: var(--radius-md);
+    cursor: pointer; transition: all .15s; background: var(--white);
+  }
+  .pay-tile:hover { border-color: var(--green); }
+  .pay-tile.on { border-color: var(--green); background: var(--green-faint); }
+  .pay-tile .radio {
+    width: 18px; height: 18px; border-radius: 50%;
+    border: 2px solid var(--border); flex-shrink: 0; position: relative;
+    transition: border-color .15s;
+  }
+  .pay-tile.on .radio { border-color: var(--green); }
+  .pay-tile.on .radio::after {
+    content:''; position: absolute; inset: 3px; border-radius: 50%; background: var(--green);
+  }
+  .pay-tile .ic {
+    width: 42px; height: 32px; border-radius: 6px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--white); border: 1px solid var(--border);
+    font-weight: 800; font-size: 11px; color: var(--text-mid);
+  }
+  .pay-tile .info { flex: 1; }
+  .pay-tile .info .t { font-size: 13.5px; font-weight: 700; color: var(--text-high); }
+  .pay-tile .info .s { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
+
+  .card-form { display: none; padding: 14px 0 0; }
+  .pay-tile.on + .card-form { display: block; }
+
+  .ep-icon { background: linear-gradient(135deg, #00a651, #009245); color: #fff; }
+  .jc-icon { background: linear-gradient(135deg, #ef3e42, #c8232c); color: #fff; }
+  .cc-icon { background: linear-gradient(135deg, #1a1f71, #142158); color: #fff; }
+  .bk-icon { background: var(--green); color: #fff; }
+
+  /* Trip card */
+  .trip-card {
+    position: sticky; top: 88px;
+    background: var(--white); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 22px; box-shadow: var(--shadow-md);
+  }
+  .trip-head { display: flex; gap: 14px; padding-bottom: 18px; border-bottom: 1px solid var(--border-faint); }
+  .trip-img {
+    width: 110px; height: 90px; border-radius: var(--radius-md); flex-shrink: 0;
+    background-size: cover; background-position: center;
+  }
+  .trip-meta .type { font-size: 11.5px; color: var(--text-muted); }
+  .trip-meta .name { font-size: 14px; font-weight: 700; color: var(--text-high); margin: 2px 0 4px; line-height: 1.3; }
+  .trip-meta .rev { font-size: 12px; color: var(--text-muted); }
+  .trip-meta .rev .star { color: var(--text-high); }
+
+  .summary { padding: 18px 0; border-bottom: 1px solid var(--border-faint); }
+  .summary .r { display: flex; justify-content: space-between; padding: 5px 0; font-size: 13px; color: var(--text-mid); }
+  .summary .r .v { color: var(--text-high); }
+  .total-row { display: flex; justify-content: space-between; padding-top: 14px; font-weight: 800; font-size: 15.5px; color: var(--text-high); }
+  .pay-note { font-size: 11.5px; color: var(--text-faint); margin-top: 10px; }
+
+  .promo-row { display: flex; gap: 8px; margin: 14px 0 6px; }
+  .promo-row input { flex: 1; }
+  .promo-row button { flex-shrink: 0; }
+
+  .secure-foot { display: flex; align-items: center; gap: 7px; margin-top: 16px; font-size: 11.5px; color: var(--text-muted); }
+  .secure-foot svg { color: var(--green); }
+
+  /* success modal */
+  .modal-back {
+    position: fixed; inset: 0; background: rgba(17,24,39,.55); z-index: 200;
+    display: none; align-items: center; justify-content: center; padding: 24px;
+  }
+  .modal-back.on { display: flex; }
+  .modal {
+    width: 100%; max-width: 460px; background: var(--white);
+    border-radius: var(--radius-lg); padding: 32px; text-align: center;
+    animation: pop .25s ease;
+  }
+  @keyframes pop { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: scale(1); } }
+  .modal .succ {
+    width: 64px; height: 64px; border-radius: 50%; background: var(--green-faint);
+    display:flex; align-items:center; justify-content:center;
+    margin: 0 auto 14px; color: var(--green);
+  }
+  .modal h3 { font-size: 20px; font-weight: 800; margin-bottom: 6px; }
+  .modal p  { font-size: 13.5px; color: var(--text-muted); margin-bottom: 18px; }
+  .modal .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+</style>
+</head>
+<body>
+
+<div id="ps-header" data-active="explore"></div>
+
+<div class="co-shell">
+  <div class="co-head">
+    <a class="back-btn" href="javascript:history.back()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+    </a>
+    <h1>Confirm and pay</h1>
+  </div>
+
+  <div class="co-grid">
+    <!-- LEFT -->
+    <div>
+      <!-- Your trip -->
+      <section class="co-section">
+        <h2>Your trip</h2>
+        <div class="info-row">
+          <div><div class="lbl">Dates</div><div class="val" id="datesVal">Jun 14 – 17, 2026 · 3 nights</div></div>
+          <a href="javascript:void(0)" onclick="PS.toast('Pick new dates')">Edit</a>
+        </div>
+        <div class="info-row">
+          <div><div class="lbl">Guests</div><div class="val" id="guestsVal">2 guests</div></div>
+          <a href="javascript:void(0)" onclick="PS.toast('Adjust guests')">Edit</a>
+        </div>
+      </section>
+
+      <!-- Guest details -->
+      <section class="co-section">
+        <h2>Who's staying?</h2>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">First name</label><input class="form-input" placeholder="Ahmed" /></div>
+          <div class="form-group"><label class="form-label">Last name</label><input class="form-input" placeholder="Khan" /></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Phone (required)</label><input class="form-input" type="tel" placeholder="03xx-xxxxxxx" /></div>
+          <div class="form-group"><label class="form-label">Email</label><input class="form-input" type="email" placeholder="you@example.com" /></div>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Message to host (optional)</label>
+          <textarea class="form-textarea" placeholder="Hi! We're a family of 4, arriving around 6pm. Looking forward to the stay."></textarea>
+        </div>
+      </section>
+
+      <!-- Payment -->
+      <section class="co-section">
+        <h2>Pay with</h2>
+        <div class="pay-list">
+          <div class="pay-tile on" onclick="pickPay(this)">
+            <div class="radio"></div>
+            <div class="ic ep-icon">EP</div>
+            <div class="info">
+              <div class="t">Easypaisa</div>
+              <div class="s">Mobile wallet · instant confirmation</div>
+            </div>
+          </div>
+          <div class="pay-tile" onclick="pickPay(this)">
+            <div class="radio"></div>
+            <div class="ic jc-icon">JC</div>
+            <div class="info">
+              <div class="t">JazzCash</div>
+              <div class="s">Mobile wallet · instant confirmation</div>
+            </div>
+          </div>
+          <div class="pay-tile" onclick="pickPay(this)">
+            <div class="radio"></div>
+            <div class="ic cc-icon">CC</div>
+            <div class="info">
+              <div class="t">Credit / debit card</div>
+              <div class="s">Visa, Mastercard, UnionPay</div>
+            </div>
+            <div class="card-form">
+              <div class="form-group"><label class="form-label">Card number</label><input class="form-input" placeholder="1234 5678 9012 3456" /></div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label">Expiry</label><input class="form-input" placeholder="MM / YY" /></div>
+                <div class="form-group"><label class="form-label">CVC</label><input class="form-input" placeholder="123" /></div>
+              </div>
+            </div>
+          </div>
+          <div class="pay-tile" onclick="pickPay(this)">
+            <div class="radio"></div>
+            <div class="ic bk-icon">BT</div>
+            <div class="info">
+              <div class="t">Bank transfer (IBFT)</div>
+              <div class="s">Pay from any Pakistani bank account</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Cancellation policy -->
+      <section class="co-section">
+        <h2>Cancellation policy</h2>
+        <p style="font-size:13px; color: var(--text-mid); line-height: 1.6;">
+          Free cancellation before <strong>Jun 11, 2026</strong>. Cancel before check-in for a partial refund. <a href="#" style="color:var(--green); font-weight:700;">Full policy</a>
+        </p>
+      </section>
+
+      <!-- House rules -->
+      <section class="co-section" style="border-bottom:0;">
+        <h2>Ground rules</h2>
+        <p style="font-size:13px; color: var(--text-mid); line-height: 1.6;">
+          By booking you agree to follow the host's house rules: no parties, no smoking inside, no unregistered guests. Quiet hours after 11 pm.
+        </p>
+      </section>
+
+      <button class="btn btn-primary btn-block btn-lg" id="confirmBtn" style="margin-top: 18px;">Confirm and pay</button>
+    </div>
+
+    <!-- RIGHT -->
+    <aside>
+      <div class="trip-card">
+        <div class="trip-head">
+          <div class="trip-img" id="tripImg"></div>
+          <div class="trip-meta">
+            <div class="type" id="tripType">Guest House · Islamabad</div>
+            <div class="name" id="tripName">Listing</div>
+            <div class="rev" id="tripRev"><span class="star">★</span> 4.9 · 128 reviews</div>
+          </div>
+        </div>
+
+        <div class="summary">
+          <div style="font-weight:800; font-size:14.5px; margin-bottom: 10px;">Price details</div>
+          <div class="r"><span id="nightlyLabel">₨32,000 x 3 nights</span><span class="v" id="nightlyTotal">₨96,000</span></div>
+          <div class="r"><span>Cleaning fee</span><span class="v">₨2,500</span></div>
+          <div class="r"><span>Service fee (8%)</span><span class="v" id="svcVal">₨7,680</span></div>
+          <div class="r"><span>Taxes (5%)</span><span class="v" id="taxVal">₨4,800</span></div>
+        </div>
+
+        <div class="promo-row">
+          <input class="form-input" placeholder="Promo code" />
+          <button class="btn btn-outline" onclick="PS.toast('Promo applied')">Apply</button>
+        </div>
+
+        <div class="total-row"><span>Total (PKR)</span><span id="grandTotal">₨1,10,980</span></div>
+        <div class="pay-note">You won't be charged until the host accepts your booking.</div>
+
+        <div class="secure-foot">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Encrypted, PCI-DSS compliant payments
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<!-- Confirmation modal -->
+<div class="modal-back" id="successModal">
+  <div class="modal">
+    <div class="succ">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    <h3>Booking sent to host!</h3>
+    <p>We've notified the host and they typically respond within 1 hour. You'll get a confirmation in the app and via SMS.</p>
+    <div class="btn-row">
+      <a href="/pakstay/dashboard.html" class="btn btn-outline btn-block">View bookings</a>
+      <a href="/pakstay/index.html" class="btn btn-primary btn-block">Explore more</a>
+    </div>
+  </div>
+</div>
+
+<script src="/pakstay/assets/pakstay.js"></script>
+<script>
+  const id = Number(PS.qs('id')) || 1;
+  const l  = PS.byId(id) || PS.listings[0];
+
+  // dates / guests from query
+  const ci = PS.qs('ci') || '2026-06-14';
+  const co = PS.qs('co') || '2026-06-17';
+  const guests = Number(PS.qs('guests')) || 2;
+
+  function fmtDate(s){
+    const d = new Date(s);
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  }
+  function fmtFull(s){
+    const d = new Date(s);
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+  const ciD = new Date(ci), coD = new Date(co);
+  const nights = Math.max(1, Math.round((coD - ciD) / 86400000));
+
+  document.getElementById('datesVal').textContent =
+    `${fmtDate(ci)} – ${fmtFull(co)} · ${nights} night${nights>1?'s':''}`;
+  document.getElementById('guestsVal').textContent = `${guests} guest${guests>1?'s':''}`;
+
+  // listing summary
+  document.getElementById('tripImg').style.backgroundImage = `url(${l.images[0]})`;
+  document.getElementById('tripType').textContent = `${l.type} · ${l.city}`;
+  document.getElementById('tripName').textContent = l.short;
+  document.getElementById('tripRev').innerHTML = `<span class="star">★</span> ${l.rating} · ${l.reviews} reviews`;
+
+  // price calc
+  const sub  = l.price * nights;
+  const svc  = Math.round(sub * 0.08);
+  const tax  = Math.round(sub * 0.05);
+  const clean = 2500;
+  const total = sub + svc + tax + clean;
+  document.getElementById('nightlyLabel').textContent = `${PS.fmtPrice(l.price)} x ${nights} night${nights>1?'s':''}`;
+  document.getElementById('nightlyTotal').textContent = PS.fmtPrice(sub);
+  document.getElementById('svcVal').textContent      = PS.fmtPrice(svc);
+  document.getElementById('taxVal').textContent      = PS.fmtPrice(tax);
+  document.getElementById('grandTotal').textContent  = PS.fmtPrice(total);
+
+  document.title = `Pak Stay — Pay ${PS.fmtPrice(total)} · ${l.short}`;
+
+  function pickPay(el){
+    document.querySelectorAll('.pay-tile').forEach(t => t.classList.remove('on'));
+    el.classList.add('on');
+  }
+
+  document.getElementById('confirmBtn').addEventListener('click', () => {
+    const btn = document.getElementById('confirmBtn');
+    btn.disabled = true;
+    btn.textContent = 'Processing payment…';
+    setTimeout(() => {
+      document.getElementById('successModal').classList.add('on');
+      btn.disabled = false;
+      btn.textContent = 'Confirm and pay';
+    }, 1100);
+  });
+</script>
+</body>
+</html>
